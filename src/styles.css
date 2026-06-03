@@ -51,7 +51,7 @@ button { font: inherit; color: inherit; }
   align-items: center;
 }
 
-.hero, .intro, .results, .archives, .stats { padding: 4px 0 24px; }
+.hero, .intro, .results, .archives, .stats, .debug-page { padding: 4px 0 24px; }
 .edition { text-transform: uppercase; letter-spacing: .32em; color: var(--muted); font-size: 12px; margin: 0 0 14px; }
 .edition-row {
   display: flex;
@@ -495,6 +495,58 @@ cursor: pointer;
 .stat-card { margin: 0; }
 .favorite-card { margin-top: 12px; }
 .favorite-card h2 { font-family: Georgia, serif; font-size: 34px; margin: 0; }
+.debug-note {
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.5;
+}
+.debug-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+.debug-stat {
+  margin: 0;
+}
+.debug-stat strong {
+  overflow-wrap: anywhere;
+}
+.debug-stat small {
+  display: block;
+  margin-top: 6px;
+  color: var(--accent);
+  font-weight: 800;
+}
+.debug-table-card {
+  margin-top: 12px;
+}
+.debug-table {
+  display: grid;
+  gap: 8px;
+}
+.debug-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.debug-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.debug-row span {
+  color: var(--ink);
+  font-weight: 750;
+}
+.debug-row strong {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 22px;
+}
 .stories { display: grid; gap: 12px; }
 .story { display: grid; grid-template-columns: 78px 1fr; gap: 14px; align-items: center; }
 .story-image { height: 78px; border-radius: 18px; background: linear-gradient(135deg, #263a59, #8a725c); color: white; display: grid; place-items: center; font-family: Georgia, serif; font-size: 24px; font-weight: 800; }
@@ -520,6 +572,7 @@ cursor: pointer;
   .result-grid { grid-template-columns: repeat(2, 1fr); }
   .archive-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .debug-grid { grid-template-columns: repeat(2, 1fr); }
 }
 .result-kicker {
   margin: 0 0 8px;
