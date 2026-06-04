@@ -121,6 +121,7 @@ const difficultyLabels = {
 
 function getEditionEventData(grid, todayGrid) {
   return {
+    edition: grid.id,
     editionId: grid.id,
     difficulty: grid.difficulty ?? "normal",
     source: grid.id === todayGrid.id ? "today" : "archive",
@@ -347,6 +348,7 @@ function App() {
 
     setAboutPlacement(placement);
     trackGeoDokuEvent("department_opened", {
+      department: placement.dep.name,
       departmentCode: placement.dep.code,
       departmentName: placement.dep.name,
       editionId: grid?.id,
@@ -433,8 +435,10 @@ function App() {
     }
 
     trackGeoDokuEvent("game_completed", {
+      edition: grid.id,
       editionId: grid.id,
       difficulty: grid.difficulty ?? "normal",
+      score: computed.total,
       scoreTotal: computed.total,
       scoreCells: computed.cells,
       underdogBonus: computed.underdogBonus,
@@ -465,7 +469,9 @@ function App() {
 
   async function share() {
     trackGeoDokuEvent("game_shared", {
+      edition: grid.id,
       editionId: grid.id,
+      score: computed.total,
       scoreTotal: computed.total,
     });
 
