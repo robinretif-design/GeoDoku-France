@@ -522,31 +522,6 @@ cursor: pointer;
 .debug-table-card {
   margin-top: 12px;
 }
-.debug-table {
-  display: grid;
-  gap: 8px;
-}
-.debug-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
-}
-.debug-row:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-.debug-row span {
-  color: var(--ink);
-  font-weight: 750;
-}
-.debug-row strong {
-  flex: 0 0 auto;
-  color: var(--accent);
-  font-size: 22px;
-}
 .stories { display: grid; gap: 12px; }
 .story { display: grid; grid-template-columns: 78px 1fr; gap: 14px; align-items: center; }
 .story-image { height: 78px; border-radius: 18px; background: linear-gradient(135deg, #263a59, #8a725c); color: white; display: grid; place-items: center; font-family: Georgia, serif; font-size: 24px; font-weight: 800; }

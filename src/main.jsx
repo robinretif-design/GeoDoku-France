@@ -2,13 +2,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Archive, BarChart3, HelpCircle, Home, Info, Map, RotateCcw, Share2, X } from "lucide-react";
+import { getAnalyticsDebugState, initAnalytics, trackGeoDokuEvent } from "./analytics";
 import { departments, getTodayGrid, grids } from "./gameData";
 import { cellKey, findMasterMove, rank, scoreCell, scoreGrid } from "./scoring";
 import "./styles.css";
 
 const STATS_STORAGE_KEY = "geodoku-france-player-stats";
 const DAILY_RESULTS_STORAGE_KEY = "geodoku-france-daily-results";
-const TELEMETRY_STORAGE_KEY = "geodoku-france-local-telemetry";
 
 const emptyStats = {
   bestScore: 0,
@@ -16,18 +16,6 @@ const emptyStats = {
   masterMoves: 0,
   totalScore: 0,
   departmentCounts: {},
-};
-
-const emptyTelemetry = {
-  visits: 0,
-  gamesStarted: 0,
-  gamesCompleted: 0,
-  shares: 0,
-  totalTimeBeforeValidationMs: 0,
-  validationsWithTime: 0,
-  rulesOpened: 0,
-  departmentSheetsOpened: 0,
-  departmentSheetCounts: {},
 };
 
 function loadPlayerStats() {
@@ -62,57 +50,6 @@ function saveDailyResults(results) {
   } catch {
     // Le verrou reste actif pour la session si le stockage local est indisponible.
   }
-}
-
-function loadTelemetry() {
-  try {
-    const saved = localStorage.getItem(TELEMETRY_STORAGE_KEY);
-    if (!saved) return emptyTelemetry;
-
-    const parsed = JSON.parse(saved);
-    return {
-      ...emptyTelemetry,
-      ...parsed,
-      departmentSheetCounts: {
-        ...emptyTelemetry.departmentSheetCounts,
-        ...(parsed.departmentSheetCounts ?? {}),
-      },
-    };
-  } catch {
-    return emptyTelemetry;
-  }
-}
-
-function saveTelemetry(telemetry) {
-  try {
-    localStorage.setItem(TELEMETRY_STORAGE_KEY, JSON.stringify(telemetry));
-  } catch {
-    // La telemetry reste locale a la session si le stockage local est indisponible.
-  }
-}
-
-function getAverageValidationTimeMs(telemetry) {
-  if (telemetry.validationsWithTime <= 0) return 0;
-  return Math.round(telemetry.totalTimeBeforeValidationMs / telemetry.validationsWithTime);
-}
-
-function formatDuration(ms) {
-  if (!ms) return "0 s";
-
-  const seconds = Math.round(ms / 1000);
-  if (seconds < 60) return `${seconds} s`;
-
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return remainingSeconds > 0 ? `${minutes} min ${remainingSeconds} s` : `${minutes} min`;
-}
-
-function getMostConsultedDepartment(telemetry) {
-  const entries = Object.entries(telemetry.departmentSheetCounts);
-  if (entries.length === 0) return { name: "Aucun", count: 0 };
-
-  const [name, count] = entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
-  return { name, count };
 }
 
 function getAverageScore(stats) {
@@ -181,6 +118,22 @@ const difficultyLabels = {
   normal: "Normal",
   expert: "Expert",
 };
+
+function getEditionEventData(grid, todayGrid) {
+  return {
+    edition_id: grid.id,
+    edition_difficulty: grid.difficulty ?? "normal",
+    edition_type: grid.id === todayGrid.id ? "daily" : "archive",
+  };
+}
+
+function getScoreBand(score) {
+  if (score >= 90) return "90_101";
+  if (score >= 75) return "75_89";
+  if (score >= 55) return "55_74";
+  if (score >= 35) return "35_54";
+  return "0_34";
+}
 
 function DifficultyBadge({ difficulty = "normal" }) {
   const key = difficultyLabels[difficulty] ? difficulty : "normal";
@@ -347,8 +300,6 @@ function App() {
   const [dailyResults, setDailyResults] = useState(loadDailyResults);
   const [showRules, setShowRules] = useState(false);
   const [aboutPlacement, setAboutPlacement] = useState(null);
-  const [telemetry, setTelemetry] = useState(loadTelemetry);
-  const [gameStartedAt, setGameStartedAt] = useState(null);
 
   const editionLabel = `GeoDoku France #${grid.id}`;
   const todayResult = dailyResults[todayGrid.id];
@@ -378,58 +329,37 @@ function App() {
   const rankLabel = rank(computed.total);
   const resultComment = getResultComment(computed.total);
   const isDebugPage = window.location.pathname === "/debug" || new URLSearchParams(window.location.search).get("debug") === "true";
-  const averageValidationTime = formatDuration(getAverageValidationTimeMs(telemetry));
-  const mostConsultedDepartment = getMostConsultedDepartment(telemetry);
-  const departmentConsultationRows = useMemo(() => (
-    Object.entries(telemetry.departmentSheetCounts)
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-  ), [telemetry.departmentSheetCounts]);
+  const [analyticsDebugState, setAnalyticsDebugState] = useState(() => getAnalyticsDebugState());
 
   useEffect(() => {
-    setTelemetry((current) => {
-      const next = { ...current, visits: current.visits + 1 };
-      saveTelemetry(next);
-      return next;
-    });
+    initAnalytics();
   }, []);
 
-  function updateTelemetry(updater) {
-    setTelemetry((current) => {
-      const next = updater(current);
-      saveTelemetry(next);
-      return next;
-    });
-  }
+  useEffect(() => {
+    if (!isDebugPage) return undefined;
 
-  function recordGameStart() {
-    setGameStartedAt(Date.now());
-    updateTelemetry((current) => ({
-      ...current,
-      gamesStarted: current.gamesStarted + 1,
-    }));
-  }
+    const updateDebugState = () => setAnalyticsDebugState(getAnalyticsDebugState());
+    updateDebugState();
+
+    const intervalId = window.setInterval(updateDebugState, 500);
+    return () => window.clearInterval(intervalId);
+  }, [isDebugPage]);
 
   function openRules() {
     setShowRules(true);
-    updateTelemetry((current) => ({
-      ...current,
-      rulesOpened: current.rulesOpened + 1,
-    }));
+    trackGeoDokuEvent("rules_opened", getEditionEventData(grid, todayGrid));
   }
 
-  function openDepartmentAbout(placement) {
+  function openDepartmentAbout(placement, source = "unknown") {
     if (!placement?.dep) return;
 
     setAboutPlacement(placement);
-    updateTelemetry((current) => {
-      const departmentSheetCounts = { ...current.departmentSheetCounts };
-      departmentSheetCounts[placement.dep.name] = (departmentSheetCounts[placement.dep.name] ?? 0) + 1;
-
-      return {
-        ...current,
-        departmentSheetsOpened: current.departmentSheetsOpened + 1,
-        departmentSheetCounts,
-      };
+    trackGeoDokuEvent("department_opened", {
+      ...getEditionEventData(grid, todayGrid),
+      department_code: placement.dep.code,
+      department_tier: placement.dep.tier,
+      source,
+      cell_score: placement.cell?.score,
     });
   }
 
@@ -478,7 +408,7 @@ function App() {
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
-    recordGameStart();
+    trackGeoDokuEvent("game_started", getEditionEventData(nextGrid, todayGrid));
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -501,7 +431,7 @@ function App() {
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
-    recordGameStart();
+    trackGeoDokuEvent("game_started", getEditionEventData(grid, todayGrid));
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -512,16 +442,12 @@ function App() {
       return;
     }
 
-    const elapsedMs = gameStartedAt ? Math.max(0, Date.now() - gameStartedAt) : 0;
-    updateTelemetry((current) => ({
-      ...current,
-      gamesCompleted: current.gamesCompleted + 1,
-      totalTimeBeforeValidationMs: elapsedMs
-        ? current.totalTimeBeforeValidationMs + elapsedMs
-        : current.totalTimeBeforeValidationMs,
-      validationsWithTime: elapsedMs ? current.validationsWithTime + 1 : current.validationsWithTime,
-    }));
-    setGameStartedAt(null);
+    trackGeoDokuEvent("game_completed", {
+      ...getEditionEventData(grid, todayGrid),
+      score_band: getScoreBand(computed.total),
+      filled_cells: placedDepartments.length,
+      has_master_move: Boolean(bestMove),
+    });
 
     const nextStats = recordGameStats(playerStats, computed.total, bestMove, usedDepartments);
     setPlayerStats(nextStats);
@@ -545,10 +471,10 @@ function App() {
   }
 
   async function share() {
-    updateTelemetry((current) => ({
-      ...current,
-      shares: current.shares + 1,
-    }));
+    trackGeoDokuEvent("game_shared", {
+      ...getEditionEventData(grid, todayGrid),
+      score_band: getScoreBand(computed.total),
+    });
 
     const shareGrid = grid.rows.map((row) => (
       grid.columns.map((col) => {
@@ -583,62 +509,43 @@ function App() {
     return (
       <main className="app">
         <section className="debug-page">
-          <p className="edition">Debug local</p>
-          <h1>Télémétrie locale</h1>
+          <p className="edition">Debug analytics</p>
+          <h1>Configuration analytics</h1>
           <p className="debug-note">
-            Ces statistiques restent uniquement dans le localStorage de ce navigateur.
+            GeoDoku ne collecte aucune donnée personnelle dans son code. Le trafic global est mesuré uniquement si un fournisseur externe est configuré au build.
           </p>
 
           <div className="debug-grid">
             <article className="result-card debug-stat">
-              <span>Visites</span>
-              <strong>{telemetry.visits}</strong>
+              <span>Provider détecté</span>
+              <strong>{analyticsDebugState.providerDetected}</strong>
+              <small>{analyticsDebugState.label}</small>
             </article>
             <article className="result-card debug-stat">
-              <span>Parties lancées</span>
-              <strong>{telemetry.gamesStarted}</strong>
+              <span>Website ID Umami</span>
+              <strong>{analyticsDebugState.umamiWebsiteIdDetected ? "Détecté" : "Manquant"}</strong>
             </article>
             <article className="result-card debug-stat">
-              <span>Parties terminées</span>
-              <strong>{telemetry.gamesCompleted}</strong>
+              <span>Script URL Umami</span>
+              <strong>{analyticsDebugState.umamiScriptUrlDetected ? "Détectée" : "Manquante"}</strong>
+              {analyticsDebugState.umamiScriptUrlDetected && <small>{analyticsDebugState.umamiScriptUrl}</small>}
             </article>
             <article className="result-card debug-stat">
-              <span>Partages</span>
-              <strong>{telemetry.shares}</strong>
+              <span>Script injecté</span>
+              <strong>{analyticsDebugState.scriptInjected ? "Oui" : "Non"}</strong>
+              <small>{analyticsDebugState.scriptStatus}</small>
             </article>
             <article className="result-card debug-stat">
-              <span>Temps moyen avant validation</span>
-              <strong>{averageValidationTime}</strong>
-            </article>
-            <article className="result-card debug-stat">
-              <span>Règles ouvertes</span>
-              <strong>{telemetry.rulesOpened}</strong>
-            </article>
-            <article className="result-card debug-stat">
-              <span>Fiches département ouvertes</span>
-              <strong>{telemetry.departmentSheetsOpened}</strong>
-            </article>
-            <article className="result-card debug-stat">
-              <span>Département le plus consulté</span>
-              <strong>{mostConsultedDepartment.name}</strong>
-              <small>{mostConsultedDepartment.count} ouverture{mostConsultedDepartment.count > 1 ? "s" : ""}</small>
+              <span>Script chargé</span>
+              <strong>{analyticsDebugState.scriptLoaded ? "Oui" : "Non"}</strong>
+              <small>API Umami : {analyticsDebugState.hasUmamiApi ? "disponible" : "indisponible"}</small>
             </article>
           </div>
 
           <section className="result-card debug-table-card">
-            <p className="result-kicker">Détail des fiches consultées</p>
-            {departmentConsultationRows.length > 0 ? (
-              <div className="debug-table">
-                {departmentConsultationRows.map(([name, count]) => (
-                  <div className="debug-row" key={name}>
-                    <span>{name}</span>
-                    <strong>{count}</strong>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>Aucune fiche département ouverte pour le moment.</p>
-            )}
+            <p className="result-kicker">Détail</p>
+            <p>{analyticsDebugState.detail}</p>
+            <p className="debug-note">Logs console actifs uniquement sur cette page debug.</p>
           </section>
         </section>
       </main>
@@ -793,7 +700,7 @@ function App() {
                         className={`cell ${selectedCell === key ? "selected" : ""} ${depName ? "filled" : ""}`}
                         onClick={() => {
                           setSelectedCell(key);
-                          if (dep && cell) openDepartmentAbout({ key, dep, row, col, cell });
+                          if (dep && cell) openDepartmentAbout({ key, dep, row, col, cell }, "grid_cell");
                         }}
                       >
                         {dep ? (
@@ -868,7 +775,7 @@ function App() {
                       row: bestMove.row,
                       col: bestMove.col,
                       cell: bestMove.cell,
-                    })}
+                    }, "master_move")}
                   >
                     <Info size={15} /> À propos du département
                   </button>
@@ -904,7 +811,7 @@ function App() {
                     <PlaceSpotlight place={featuredPlace} code={dep.code} compact />
                     <p className="stat">{pct}% des joueurs auraient probablement tenté ce département ici.</p>
                     <p>{dep.anecdote}</p>
-                    <button className="text-button" onClick={() => openDepartmentAbout(placement)}>
+                    <button className="text-button" onClick={() => openDepartmentAbout(placement, "result_card")}>
                       <Info size={15} /> À propos du département
                     </button>
                   </div>
