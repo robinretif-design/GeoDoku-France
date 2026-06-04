@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Archive, BarChart3, HelpCircle, Home, Info, Map, RotateCcw, Share2, X } from "lucide-react";
-import { getAnalyticsDebugState, initAnalytics, trackGeoDokuEvent } from "./analytics";
+import { getAnalyticsDebugState, initAnalytics, trackGeoDokuEvent } from "./analytics.js";
 import { departments, getTodayGrid, grids } from "./gameData";
 import { cellKey, findMasterMove, rank, scoreCell, scoreGrid } from "./scoring";
 import "./styles.css";
@@ -121,18 +121,10 @@ const difficultyLabels = {
 
 function getEditionEventData(grid, todayGrid) {
   return {
-    edition_id: grid.id,
-    edition_difficulty: grid.difficulty ?? "normal",
-    edition_type: grid.id === todayGrid.id ? "daily" : "archive",
+    editionId: grid.id,
+    difficulty: grid.difficulty ?? "normal",
+    source: grid.id === todayGrid.id ? "today" : "archive",
   };
-}
-
-function getScoreBand(score) {
-  if (score >= 90) return "90_101";
-  if (score >= 75) return "75_89";
-  if (score >= 55) return "55_74";
-  if (score >= 35) return "35_54";
-  return "0_34";
 }
 
 function DifficultyBadge({ difficulty = "normal" }) {
@@ -347,19 +339,18 @@ function App() {
 
   function openRules() {
     setShowRules(true);
-    trackGeoDokuEvent("rules_opened", getEditionEventData(grid, todayGrid));
+    trackGeoDokuEvent("rules_opened", { screen });
   }
 
-  function openDepartmentAbout(placement, source = "unknown") {
+  function openDepartmentAbout(placement, context = "unknown") {
     if (!placement?.dep) return;
 
     setAboutPlacement(placement);
     trackGeoDokuEvent("department_opened", {
-      ...getEditionEventData(grid, todayGrid),
-      department_code: placement.dep.code,
-      department_tier: placement.dep.tier,
-      source,
-      cell_score: placement.cell?.score,
+      departmentCode: placement.dep.code,
+      departmentName: placement.dep.name,
+      editionId: grid?.id,
+      context,
     });
   }
 
@@ -431,7 +422,6 @@ function App() {
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
-    trackGeoDokuEvent("game_started", getEditionEventData(grid, todayGrid));
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -443,10 +433,13 @@ function App() {
     }
 
     trackGeoDokuEvent("game_completed", {
-      ...getEditionEventData(grid, todayGrid),
-      score_band: getScoreBand(computed.total),
-      filled_cells: placedDepartments.length,
-      has_master_move: Boolean(bestMove),
+      editionId: grid.id,
+      difficulty: grid.difficulty ?? "normal",
+      scoreTotal: computed.total,
+      scoreCells: computed.cells,
+      underdogBonus: computed.underdogBonus,
+      diversityBonus: computed.diversityBonus,
+      completionBonus: computed.completionBonus,
     });
 
     const nextStats = recordGameStats(playerStats, computed.total, bestMove, usedDepartments);
@@ -472,8 +465,8 @@ function App() {
 
   async function share() {
     trackGeoDokuEvent("game_shared", {
-      ...getEditionEventData(grid, todayGrid),
-      score_band: getScoreBand(computed.total),
+      editionId: grid.id,
+      scoreTotal: computed.total,
     });
 
     const shareGrid = grid.rows.map((row) => (
@@ -700,7 +693,7 @@ function App() {
                         className={`cell ${selectedCell === key ? "selected" : ""} ${depName ? "filled" : ""}`}
                         onClick={() => {
                           setSelectedCell(key);
-                          if (dep && cell) openDepartmentAbout({ key, dep, row, col, cell }, "grid_cell");
+                          if (dep && cell) openDepartmentAbout({ key, dep, row, col, cell }, "grid");
                         }}
                       >
                         {dep ? (
@@ -811,7 +804,7 @@ function App() {
                     <PlaceSpotlight place={featuredPlace} code={dep.code} compact />
                     <p className="stat">{pct}% des joueurs auraient probablement tenté ce département ici.</p>
                     <p>{dep.anecdote}</p>
-                    <button className="text-button" onClick={() => openDepartmentAbout(placement, "result_card")}>
+                    <button className="text-button" onClick={() => openDepartmentAbout(placement, "result")}>
                       <Info size={15} /> À propos du département
                     </button>
                   </div>

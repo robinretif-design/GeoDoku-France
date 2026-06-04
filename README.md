@@ -70,7 +70,15 @@ VITE_UMAMI_SCRIPT_URL=https://analytics.example.com/script.js
 - `department_opened`
 - `rules_opened`
 
-Les propriétés envoyées restent limitées au contexte de jeu non personnel : édition, difficulté, type d'édition, tranche de score, code département ou source d'ouverture.
+Propriétés envoyées :
+
+- `game_started` : `editionId`, `difficulty`, `source`
+- `game_completed` : `editionId`, `difficulty`, `scoreTotal`, `scoreCells`, `underdogBonus`, `diversityBonus`, `completionBonus`
+- `game_shared` : `editionId`, `scoreTotal`
+- `department_opened` : `departmentCode`, `departmentName`, `editionId`, `context`
+- `rules_opened` : `screen`
+
+Ces propriétés restent limitées au contexte de jeu et ne contiennent aucun compte utilisateur ni donnée personnelle.
 
 ### Script configurable
 
