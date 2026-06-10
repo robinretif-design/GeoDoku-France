@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-label="Illustration originale des chantiers de Saint-Nazaire">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="560">
+      <stop offset="0" stop-color="#1f334f"/>
+      <stop offset=".58" stop-color="#285f73"/>
+      <stop offset="1" stop-color="#80694f"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="560" rx="48" fill="url(#bg)"/>
+  <path d="M0 402c128-28 222-24 333 7 120 34 243 26 360-8 73-21 140-21 207-5v164H0Z" fill="#fff8e7" opacity=".2"/>
+  <path d="M170 350h560l-62 84H236Z" fill="#f6f0e4" opacity=".86"/>
+  <path d="M230 313h420l56 37H178Z" fill="#c6ad83"/>
+  <g stroke="#fff1bd" stroke-width="16" stroke-linecap="round" opacity=".85">
+    <path d="M230 116v212"/>
+    <path d="M230 116h220"/>
+    <path d="M450 116v188"/>
+    <path d="M450 152h170"/>
+    <path d="M620 152v162"/>
+  </g>
+  <g fill="#273a5c" opacity=".76">
+    <rect x="278" y="376" width="54" height="22" rx="8"/>
+    <rect x="392" y="376" width="54" height="22" rx="8"/>
+    <rect x="506" y="376" width="54" height="22" rx="8"/>
+    <rect x="620" y="376" width="54" height="22" rx="8"/>
+  </g>
+</svg>

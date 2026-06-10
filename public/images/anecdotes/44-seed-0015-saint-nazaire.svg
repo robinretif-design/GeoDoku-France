@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-label="Illustration originale de Saint-Nazaire industriel">
+  <rect width="900" height="420" rx="40" fill="#223653"/>
+  <path d="M0 314c142-30 259-24 391 7 140 34 287 22 509-10v109H0Z" fill="#2e6d78"/>
+  <path d="M168 270h566l-58 74H230Z" fill="#f6f0e4"/>
+  <g stroke="#fff1bd" stroke-width="14" stroke-linecap="round">
+    <path d="M252 82v210"/>
+    <path d="M252 82h202"/>
+    <path d="M454 82v188"/>
+    <path d="M454 130h168"/>
+    <path d="M622 130v156"/>
+  </g>
+  <path d="M214 304h448" stroke="#273a5c" stroke-width="16" stroke-linecap="round" opacity=".5"/>
+</svg>

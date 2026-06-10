@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-label="Illustration originale des calanques et de Marseille">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="560">
+      <stop offset="0" stop-color="#213757"/>
+      <stop offset=".55" stop-color="#2d8192"/>
+      <stop offset="1" stop-color="#b77449"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="560" rx="48" fill="url(#bg)"/>
+  <circle cx="704" cy="126" r="58" fill="#fff0bd" opacity=".78"/>
+  <path d="M80 390 218 184l92 174 96-138 110 170 116-128 188 128v170H80Z" fill="#f6f0e4" opacity=".76"/>
+  <path d="M0 414c114-28 204-24 318 5 122 31 241 28 362-4 82-21 152-21 220-5v150H0Z" fill="#1f334f" opacity=".45"/>
+  <path d="M398 356c26-52 62-78 108-78s84 31 116 93" fill="none" stroke="#fff8e7" stroke-width="15" stroke-linecap="round" opacity=".7"/>
+  <path d="M160 430h178M562 430h160" stroke="#fff8e7" stroke-width="12" stroke-linecap="round" opacity=".58"/>
+</svg>

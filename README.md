@@ -94,3 +94,61 @@ Après modification des variables, relancer le build :
 ```bash
 npm run build
 ```
+
+## Anecdotes départementales
+
+Le système d'anecdotes est découpé pour pouvoir accueillir progressivement plusieurs milliers de contenus sans rendre le fichier principal illisible.
+
+Structure :
+
+- `src/data/departements.js` : référentiel éditorial des départements.
+- `src/data/anecdotes.js` : taxonomies, statuts, format CSV, anecdotes legacy et agrégat éditorial.
+- `src/data/anecdotes/batch001.js` : premier lot importé de 300 anecdotes au statut `à vérifier`.
+- `src/services/anecdotesService.js` : sélection, anecdotes jamais vues et statistiques locales.
+- `src/utils/importAnecdotesCsv.js` : import, export et fusion CSV.
+- `src/utils/auditAnecdotes.js` : contrôle qualité éditorial.
+- `src/anecdotes.js` : façade de compatibilité qui réexporte les modules.
+
+Exports principaux :
+
+- `departements` : référentiel des 101 départements avec `code`, `nom`, `region`, `population`, `superficie`.
+- `legacyAnecdotes` : premières anecdotes validées, une par département, dérivées des contenus existants.
+- `anecdotesBatch001` : lot CSV importé, conservé à part et non validé.
+- `anecdotes` : agrégat éditorial complet.
+- `getRandomValidatedAnecdoteForDepartment(code)` : anecdote aléatoire validée.
+- `getNeverSeenAnecdoteForDepartment(code)` : sélection qui privilégie les anecdotes non vues par le joueur.
+- `getContextualAnecdote(code, contexte)` : sélection adaptée au contexte éditorial.
+- `getRareAnecdote(code)` : anecdote rare validée.
+- `getAllAnecdotesForDepartment(code)` : toutes les anecdotes d'un département.
+- `getAvailableAnecdoteCountsByDepartment()` : nombre d'anecdotes validées par département.
+- `recordAnecdoteDisplay(id)`, `recordAnecdoteRead(id)`, `recordAnecdoteFeedback(id, appreciation)` : statistiques locales.
+- `parseAnecdotesCsv(csvText)`, `anecdotesToCsv(anecdotes)`, `mergeAnecdotes(existing, imported)` : import/export CSV.
+- `auditAnecdotes()` : signale les départements insuffisamment couverts, les sources manquantes, les anecdotes non validées et les doublons.
+
+Les services de sélection ne retournent pas les anecdotes non validées par défaut. Les statuts possibles sont `brouillon`, `à vérifier`, `validée`, `rejetée`.
+
+### Sélection en jeu
+
+Dans l'expérience de résultat et dans la fiche "À propos du département", GeoDoku utilise le moteur éditorial quand une anecdote validée est disponible.
+
+Logique appliquée :
+
+- seules les anecdotes avec le statut `validée` sont exposées au joueur ;
+- les statuts `à vérifier`, `brouillon` et `rejetée` sont exclus par le service ;
+- la sélection privilégie une anecdote contextuelle jamais vue localement quand c'est possible ;
+- le coup de maître peut privilégier une anecdote rare non vue si le département en possède une ;
+- l'historique local est stocké dans `localStorage` pour réduire les répétitions ;
+- si aucune anecdote validée n'est disponible, l'application affiche l'ancien texte `dep.anecdote` issu de `gameData.js`.
+
+Ce fallback garantit que l'interface reste complète même si un département n'a pas encore de contenu éditorial validé.
+
+Format CSV attendu :
+
+```csv
+code_departement;categorie;titre;contenu;difficulte;rarete;ton;contexte;source;statut_validation
+23;géographie;Plateau de Millevaches;Le nom évoquerait plutôt les sources que les animaux.;3;peu commune;pédagogique;découverte;Source à compléter;à vérifier
+```
+
+L'import accepte aussi les anciens lots `departement;categorie;titre;contenu;difficulte;rarete;source;consigne` en appliquant les valeurs par défaut éditoriales.
+
+Les statistiques d'anecdotes restent dans le navigateur du joueur via `localStorage`.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-label="Illustration originale de Paris urbain">
+  <rect width="900" height="420" rx="40" fill="#243553"/>
+  <path d="M126 276h104v96H126zM290 206h122v166H290zM470 246h92v126h-92zM632 170h82v202h-82z" fill="#f6f0e4" opacity=".78"/>
+  <path d="M102 372h658" stroke="#fff8e7" stroke-width="14" stroke-linecap="round" opacity=".55"/>
+  <path d="M108 316c98-24 184-23 282 2 122 31 235 25 360-14" fill="none" stroke="#8a725c" stroke-width="14" stroke-linecap="round"/>
+  <path d="M616 150 674 78 732 150Z" fill="#fff1bd" opacity=".82"/>
+</svg>

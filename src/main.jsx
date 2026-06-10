@@ -5,6 +5,35 @@ import { Archive, BarChart3, HelpCircle, Home, Info, Map, RotateCcw, Share2, X }
 import { getAnalyticsDebugState, initAnalytics, trackGeoDokuEvent } from "./analytics.js";
 import { departments, getTodayGrid, grids } from "./gameData";
 import { cellKey, findMasterMove, rank, scoreCell, scoreGrid } from "./scoring";
+import {
+  getContextualAnecdote,
+  getNeverSeenAnecdoteForDepartment,
+  getRareAnecdote,
+  getSeenAnecdoteIds,
+  isAnecdoteValidated,
+  recordAnecdoteDisplay,
+} from "./services/anecdotesService.js";
+import {
+  getCommunityInsightForPlacement,
+  loadCommunityStatsStore,
+  recordCommunityGame,
+} from "./services/communityStatsService.js";
+import {
+  getDiscoveryStats,
+  getRarityMetadata,
+  recordDiscovery,
+} from "./services/discoveryService.js";
+import {
+  getCollectionsStats,
+  recordCollectionDiscovery,
+} from "./services/collectionsService.js";
+import {
+  getAnecdoteMedia,
+  getDepartmentMedia,
+  getMediaAlt,
+  getPlaceMedia,
+  MEDIA_FALLBACKS,
+} from "./services/mediaService.js";
 import "./styles.css";
 
 const STATS_STORAGE_KEY = "geodoku-france-player-stats";
@@ -138,6 +167,7 @@ function DifficultyBadge({ difficulty = "normal" }) {
 }
 
 function formatTag(tag) {
+  if (tag === "underdog") return "choix rare";
   return tag.replace(/_/g, " ");
 }
 
@@ -151,18 +181,274 @@ function getFeaturedPlace(dep, seed = "") {
   return dep.places[value % dep.places.length];
 }
 
+function getAnecdoteCacheKey(gridId, placement, context = "result") {
+  return `${gridId ?? "grid"}__${placement?.key ?? `${placement?.row?.id}-${placement?.col?.id}-${placement?.dep?.code}`}__${context}`;
+}
+
+function getAnecdoteContext(placement, displayContext = "result") {
+  if (displayContext === "master_move") return "anecdote_rare";
+  if (placement?.cell?.score >= 7) return "bonne_reponse";
+  if (placement?.cell?.score <= 4) return "mauvaise_reponse";
+  return "découverte";
+}
+
+function getFallbackAnecdote(dep) {
+  return {
+    id: `legacy-${dep.code}`,
+    title: "Anecdote départementale",
+    content: dep.anecdote,
+    category: "legacy",
+    rarity: "commune",
+    context: "fallback",
+    tone: "neutre",
+    theme: null,
+    collection: null,
+    image: null,
+    imageAlt: "",
+    isFallback: true,
+  };
+}
+
+function toDisplayAnecdote(anecdote, collection = null) {
+  return {
+    id: anecdote.id,
+    title: anecdote.titre,
+    content: anecdote.contenu,
+    category: anecdote.categorie,
+    rarity: anecdote.rarete,
+    context: anecdote.contexte,
+    tone: anecdote.ton,
+    theme: anecdote.theme ?? null,
+    collection,
+    image: getAnecdoteMedia(anecdote),
+    imageAlt: getMediaAlt(anecdote, anecdote.titre),
+    isFallback: false,
+  };
+}
+
+function getRarityDiscoverySignal(rarity) {
+  const metadata = getRarityMetadata(rarity);
+  if (!metadata.indicator) return null;
+
+  if (metadata.level >= 4) {
+    return {
+      variant: "legendary",
+      label: "Anecdote légendaire découverte",
+      detail: "Exceptionnelle",
+    };
+  }
+
+  if (metadata.level === 3) {
+    return {
+      variant: "very-rare",
+      label: "Anecdote très rare découverte",
+      detail: "Très peu commune",
+    };
+  }
+
+  return {
+    variant: "rare",
+    label: "Anecdote rare découverte",
+    detail: "Rare",
+  };
+}
+
+function getCollectionDiscoverySignal(collection) {
+  if (!collection?.collection) return null;
+
+  const progressLabel = collection.totalAvailable > 0
+    ? `${collection.discoveredCount}/${collection.totalAvailable}`
+    : `${collection.discoveredCount}`;
+  const label = collection.isNewCollection
+    ? "Nouvelle collection découverte"
+    : collection.isNewAnecdote && collection.discoveredCount > 1
+      ? "Collection enrichie"
+      : "Collection";
+
+  return {
+    variant: collection.isNewCollection ? "collection-new" : "collection",
+    label,
+    detail: `${collection.collectionLabel} ${progressLabel}`,
+  };
+}
+
+function getCommunityDiscoverySignal(communityInsight) {
+  if (!communityInsight) return null;
+
+  return {
+    variant: "trend",
+    label: "Tendance locale",
+    detail: communityInsight.replace(/^Tendance locale\s*:\s*/i, ""),
+  };
+}
+
+function DiscoveryBadge({ signal }) {
+  if (!signal) return null;
+
+  return (
+    <span className={`discovery-badge discovery-badge-${signal.variant}`}>
+      <span className="discovery-badge-label">{signal.label}</span>
+      {signal.detail && <span className="discovery-badge-detail">{signal.detail}</span>}
+    </span>
+  );
+}
+
+function DiscoverySignals({ displayAnecdote, communityInsight }) {
+  const signals = [];
+
+  if (!displayAnecdote?.isFallback) {
+    signals.push(getRarityDiscoverySignal(displayAnecdote.rarity));
+    signals.push(getCollectionDiscoverySignal(displayAnecdote.collection));
+  }
+
+  signals.push(getCommunityDiscoverySignal(communityInsight));
+
+  const visibleSignals = signals.filter(Boolean);
+  if (visibleSignals.length === 0) return null;
+
+  return (
+    <div className="discovery-signals" aria-label="Decouvertes">
+      {visibleSignals.map((signal) => (
+        <DiscoveryBadge
+          key={`${signal.variant}-${signal.label}-${signal.detail ?? ""}`}
+          signal={signal}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MediaFrame({ className = "", src, fallbackSrc, code, label, ariaLabel, alt = "" }) {
+  const [failedSrc, setFailedSrc] = useState(null);
+  const primaryFailed = Boolean(src) && failedSrc === src;
+  const imageSrc = src && !primaryFailed ? src : fallbackSrc;
+  const hasUsableImage = Boolean(imageSrc) && failedSrc !== imageSrc;
+
+  useEffect(() => {
+    setFailedSrc(null);
+  }, [src, fallbackSrc]);
+
+  return (
+    <div className={`media-frame ${className}`} role="img" aria-label={ariaLabel || label || code || "Visuel GeoDoku"}>
+      {hasUsableImage && (
+        <img
+          src={imageSrc}
+          alt={alt}
+          loading="lazy"
+          onError={() => setFailedSrc(imageSrc)}
+        />
+      )}
+      <span className="media-shade" aria-hidden="true" />
+      {label && <span className="media-label">{label}</span>}
+      {code && <span className="media-code">{code}</span>}
+    </div>
+  );
+}
+
+function DepartmentThumbnail({ dep, place = null, className = "story-image" }) {
+  return (
+    <MediaFrame
+      className={className}
+      src={getDepartmentMedia(dep, place)}
+      fallbackSrc={MEDIA_FALLBACKS.department}
+      code={dep.code}
+      ariaLabel={dep.name}
+      alt={getMediaAlt(dep, dep.name)}
+    />
+  );
+}
+
+function AnecdoteMedia({ displayAnecdote, dep }) {
+  return (
+    <MediaFrame
+      className="anecdote-media"
+      src={displayAnecdote.image}
+      fallbackSrc={MEDIA_FALLBACKS.anecdote}
+      code={dep.code}
+      label={displayAnecdote.isFallback ? "Anecdote" : displayAnecdote.category}
+      alt={displayAnecdote.imageAlt}
+    />
+  );
+}
+
+function logAnecdoteSelection(dep, selection, reason) {
+  if (!import.meta.env.DEV) return;
+
+  console.info("[GeoDoku anecdotes]", {
+    departmentCode: dep.code,
+    departmentName: dep.name,
+    source: selection.isFallback ? "fallback" : "validated",
+    anecdoteId: selection.id,
+    reason,
+  });
+}
+
+function selectDepartmentAnecdote(placement, displayContext = "result") {
+  const dep = placement?.dep;
+  if (!dep) return null;
+
+  const editorialContext = getAnecdoteContext(placement, displayContext);
+  const seenIds = getSeenAnecdoteIds();
+  let selected = null;
+
+  if (displayContext === "master_move") {
+    const rare = getRareAnecdote(dep.code, { recordDisplay: false });
+    if (rare && !seenIds.includes(rare.id)) {
+      selected = rare;
+    }
+  }
+
+  if (!selected) {
+    selected = getContextualAnecdote(dep.code, editorialContext, { recordDisplay: false });
+  }
+
+  if (!selected) {
+    selected = getNeverSeenAnecdoteForDepartment(dep.code, { recordDisplay: false });
+  }
+
+  if (selected && isAnecdoteValidated(selected)) {
+    recordAnecdoteDisplay(selected.id, selected);
+    recordDiscovery(selected, {
+      departmentCode: dep.code,
+      departmentName: dep.name,
+      context: displayContext,
+    });
+    const collectionResult = recordCollectionDiscovery(selected, {
+      departmentCode: dep.code,
+      departmentName: dep.name,
+      context: displayContext,
+    });
+    const display = toDisplayAnecdote(selected, collectionResult.collection);
+    logAnecdoteSelection(dep, display, "validated_anecdote_found");
+    return display;
+  }
+
+  if (selected && !isAnecdoteValidated(selected) && import.meta.env.DEV) {
+    console.warn("[GeoDoku anecdotes] Anecdote non validée rejetée avant affichage", {
+      departmentCode: dep.code,
+      anecdoteId: selected.id,
+      status: selected.statut_validation,
+    });
+  }
+
+  const fallback = getFallbackAnecdote(dep);
+  logAnecdoteSelection(dep, fallback, "fallback_used");
+  return fallback;
+}
+
 function PlaceSpotlight({ place, code, compact = false }) {
   if (!place) return null;
 
   return (
     <section className={`place-spotlight ${compact ? "compact" : ""}`}>
-      <div className="place-visual">
-        {place.image ? (
-          <img src={place.image} alt="" />
-        ) : (
-          <span>{code}</span>
-        )}
-      </div>
+      <MediaFrame
+        className="place-visual"
+        src={getPlaceMedia(place)}
+        fallbackSrc={MEDIA_FALLBACKS.place}
+        code={code}
+        ariaLabel={place.name}
+        alt={getMediaAlt(place, place.name)}
+      />
       <div>
         <p className="place-type">{place.type}</p>
         <h3>{place.name}</h3>
@@ -176,6 +462,7 @@ function DepartmentAbout({ placement, onClose }) {
   if (!placement) return null;
 
   const { dep, row, col, cell } = placement;
+  const displayAnecdote = placement.displayAnecdote ?? getFallbackAnecdote(dep);
   const featuredPlace = getFeaturedPlace(dep, `${row.id}-${col.id}`);
   const rowTags = getMatchingTags(dep, row);
   const colTags = getMatchingTags(dep, col);
@@ -184,15 +471,15 @@ function DepartmentAbout({ placement, onClose }) {
     + (cell.rowMatches > 0 && cell.colMatches > 0 ? 1 : 0);
   const rareBoost = dep.prestige >= 8 ? Math.min(9, baseScore + 1) - baseScore : 0;
   const rareSentence = rareBoost
-    ? ", avec +1 de rareté lié à son prestige."
+    ? ", avec +1 de choix rare lié à son prestige."
     : dep.prestige >= 8
-      ? ", son prestige rare est reconnu mais le score reste plafonné à 9."
+      ? ", son profil rare est reconnu mais le score reste plafonné à 9."
       : ".";
   const activatedTags = [...new Set([...rowTags, ...colTags])];
   const scoreBonusLabel = rareBoost
-    ? `Bonus rareté +${rareBoost}`
+    ? `Bonus choix rare +${rareBoost}`
     : dep.prestige >= 8
-      ? "Bonus rareté plafonné"
+      ? "Bonus choix rare plafonné"
       : null;
 
   return (
@@ -202,13 +489,15 @@ function DepartmentAbout({ placement, onClose }) {
 
         {featuredPlace && (
           <section className="place-hero">
-            <div className="place-hero-visual">
-              {featuredPlace.image ? (
-                <img src={featuredPlace.image} alt="" />
-              ) : (
-                <span>{dep.code}</span>
-              )}
-            </div>
+            <MediaFrame
+              className="place-hero-visual"
+              src={getPlaceMedia(featuredPlace) ?? getDepartmentMedia(dep)}
+              fallbackSrc={MEDIA_FALLBACKS.place}
+              code={dep.code}
+              label={featuredPlace.type}
+              ariaLabel={featuredPlace.name}
+              alt={getMediaAlt(featuredPlace, featuredPlace.name)}
+            />
             <div className="place-hero-copy">
               <p className="place-type">{featuredPlace.type}</p>
               <h2>{featuredPlace.name}</h2>
@@ -240,38 +529,41 @@ function DepartmentAbout({ placement, onClose }) {
           {scoreBonusLabel && <p>{scoreBonusLabel}</p>}
         </section>
 
+        <section className="about-section anecdote-highlight">
+          <p className="result-kicker">À retenir</p>
+          <AnecdoteMedia displayAnecdote={displayAnecdote} dep={dep} />
+          <DiscoverySignals displayAnecdote={displayAnecdote} />
+          {!displayAnecdote.isFallback && <h3>{displayAnecdote.title}</h3>}
+          <p>{displayAnecdote.content}</p>
+        </section>
+
         <section className="about-section">
-          <p className="result-kicker">Pourquoi il marque</p>
+          <p className="result-kicker">Pourquoi ce choix marque</p>
           <p className="crossing-line">{row.label} × {col.label}</p>
           <div className="score-reasons">
             <div>
-              <span>Tags ligne activés</span>
+              <span>Côté ligne</span>
               <strong>{rowTags.length ? rowTags.map(formatTag).join(", ") : "aucun tag direct"}</strong>
             </div>
             <div>
-              <span>Tags colonne activés</span>
+              <span>Côté colonne</span>
               <strong>{colTags.length ? colTags.map(formatTag).join(", ") : "aucun tag direct"}</strong>
             </div>
             <div>
-              <span>Tags activés</span>
+              <span>Ce qui a compté</span>
               <strong>{activatedTags.length ? activatedTags.map(formatTag).join(", ") : "aucun tag direct"}</strong>
             </div>
             {dep.prestige >= 8 && (
               <div>
-                <span>Rareté</span>
+                <span>Choix rare</span>
                 <strong>{rareSentence.replace(/^, /, "").replace(/\.$/, "")}</strong>
               </div>
             )}
           </div>
         </section>
 
-        <section className="about-section">
-          <p className="result-kicker">Anecdote départementale</p>
-          <p>{dep.anecdote}</p>
-        </section>
-
-        <section className="about-section muted-section">
-          <p className="result-kicker">Tags du département</p>
+        <section className="about-section muted-section tags-section">
+          <p className="result-kicker">Caractéristiques du département</p>
           <div className="tag-list subtle">
             {dep.tags.map((tag) => (
               <span className="tag-pill" key={tag}>{formatTag(tag)}</span>
@@ -293,6 +585,11 @@ function App() {
   const [dailyResults, setDailyResults] = useState(loadDailyResults);
   const [showRules, setShowRules] = useState(false);
   const [aboutPlacement, setAboutPlacement] = useState(null);
+  const [resultAnecdotes, setResultAnecdotes] = useState({});
+  const [cellAttemptCounts, setCellAttemptCounts] = useState({});
+  const [communityStatsStore, setCommunityStatsStore] = useState(loadCommunityStatsStore);
+  const [discoveryStats, setDiscoveryStats] = useState(getDiscoveryStats);
+  const [collectionStats, setCollectionStats] = useState(getCollectionsStats);
 
   const editionLabel = `GeoDoku France #${grid.id}`;
   const todayResult = dailyResults[todayGrid.id];
@@ -338,6 +635,24 @@ function App() {
     return () => window.clearInterval(intervalId);
   }, [isDebugPage]);
 
+  useEffect(() => {
+    if (screen !== "result") return;
+
+    const visiblePlacements = placedDepartments.slice(0, 4);
+    const additions = {};
+
+    visiblePlacements.forEach((placement) => {
+      const key = getAnecdoteCacheKey(grid.id, placement, "result");
+      if (!resultAnecdotes[key]) {
+        additions[key] = selectDepartmentAnecdote(placement, "result");
+      }
+    });
+
+    if (Object.keys(additions).length > 0) {
+      setResultAnecdotes((prev) => ({ ...prev, ...additions }));
+    }
+  }, [screen, grid.id, placedDepartments, resultAnecdotes]);
+
   function openRules() {
     setShowRules(true);
     trackGeoDokuEvent("rules_opened", { screen });
@@ -346,7 +661,14 @@ function App() {
   function openDepartmentAbout(placement, context = "unknown") {
     if (!placement?.dep) return;
 
-    setAboutPlacement(placement);
+    const cachedAnecdote = context === "result"
+      ? resultAnecdotes[getAnecdoteCacheKey(grid.id, placement, "result")]
+      : null;
+
+    setAboutPlacement({
+      ...placement,
+      displayAnecdote: cachedAnecdote ?? selectDepartmentAnecdote(placement, context),
+    });
     trackGeoDokuEvent("department_opened", {
       department: placement.dep.name,
       departmentCode: placement.dep.code,
@@ -361,6 +683,8 @@ function App() {
     setScreen("home");
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -368,6 +692,8 @@ function App() {
     setScreen("archives");
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -375,6 +701,10 @@ function App() {
     setScreen("stats");
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
+    setDiscoveryStats(getDiscoveryStats());
+    setCollectionStats(getCollectionsStats());
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -386,6 +716,8 @@ function App() {
     setAnswers(completed.answers ?? {});
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
     setScreen("result");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -401,6 +733,8 @@ function App() {
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
     trackGeoDokuEvent("game_started", getEditionEventData(nextGrid, todayGrid));
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -408,15 +742,20 @@ function App() {
 
   function chooseDepartment(name) {
     if (!selectedCell) return;
-    setAnswers((prev) => ({ ...prev, [selectedCell]: name }));
+    const key = selectedCell;
+    setAnswers((prev) => ({ ...prev, [key]: name }));
+    setCellAttemptCounts((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }));
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
   }
 
   function reset() {
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
     setScreen("game");
   }
 
@@ -424,6 +763,8 @@ function App() {
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
+    setResultAnecdotes({});
+    setCellAttemptCounts({});
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -449,6 +790,14 @@ function App() {
     const nextStats = recordGameStats(playerStats, computed.total, bestMove, usedDepartments);
     setPlayerStats(nextStats);
     savePlayerStats(nextStats);
+
+    const communityResult = recordCommunityGame({
+      grid,
+      answers,
+      departments,
+      attemptCounts: cellAttemptCounts,
+    });
+    setCommunityStatsStore(communityResult.store);
 
     if (isCurrentDailyEdition) {
       const nextDailyResults = {
@@ -660,6 +1009,14 @@ function App() {
               <span>Moyenne</span>
             </div>
             <div className="result-card stat-card">
+              <strong>{discoveryStats.rareOrBetterDiscoveries}</strong>
+              <span>Anecdotes rares</span>
+            </div>
+            <div className="result-card stat-card">
+              <strong>{discoveryStats.legendaryDiscoveries}</strong>
+              <span>Légendaires</span>
+            </div>
+            <div className="result-card stat-card">
               <strong>{playerStats.masterMoves}</strong>
               <span>Coups de maître</span>
             </div>
@@ -667,6 +1024,33 @@ function App() {
           <section className="result-card favorite-card">
             <p className="result-kicker">Département favori</p>
             <h2>{getFavoriteDepartment(playerStats)}</h2>
+          </section>
+          <section className="result-card collections-card">
+            <p className="result-kicker">Collections</p>
+            <div className="collections-summary">
+              <div>
+                <strong>{collectionStats.totalCollectionsDiscovered}</strong>
+                <span>collections découvertes</span>
+              </div>
+              <div>
+                <strong>{collectionStats.totalCollectionAnecdotesDiscovered}</strong>
+                <span>anecdotes classées</span>
+              </div>
+              <div>
+                <strong>{collectionStats.lastCollectionDiscovered?.collectionLabel ?? "Aucune"}</strong>
+                <span>dernière collection</span>
+              </div>
+            </div>
+            {collectionStats.visibleCollections.length > 0 && (
+              <div className="collection-progress-list">
+                {collectionStats.visibleCollections.map((collection) => (
+                  <div className="collection-progress-item" key={collection.collection}>
+                    <span>{collection.collectionLabel}</span>
+                    <strong>{collection.discoveredCount}/{collection.totalAvailable || collection.discoveredCount}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </section>
       )}
@@ -761,7 +1145,7 @@ function App() {
             <section className="master-move">
               <p className="result-kicker">Votre coup de maître</p>
               <div className="master-content">
-                <div className="master-code">{bestMove.dep.code}</div>
+                <DepartmentThumbnail dep={bestMove.dep} className="master-code" />
                 <div>
                   <h2>{bestMove.dep.name}</h2>
                   <p className="master-meta">Département n°{bestMove.dep.code}</p>
@@ -785,7 +1169,7 @@ function App() {
           <p className="rank">{rankLabel}</p>
           <div className="result-grid">
             <div className="result-card"><strong>{computed.cells}</strong><span>Points de cases</span></div>
-            <div className="result-card"><strong>+{computed.underdogBonus}</strong><span>Bonus underdog</span></div>
+            <div className="result-card"><strong>+{computed.underdogBonus}</strong><span>Bonus choix rare</span></div>
             <div className="result-card"><strong>+{computed.diversityBonus}</strong><span>Diversité</span></div>
             <div className="result-card"><strong>+{computed.completionBonus}</strong><span>Grille complétée</span></div>
           </div>
@@ -801,15 +1185,23 @@ function App() {
               const { dep, row, col, cell, key } = placement;
               const pct = dep.selectionRate ?? Math.max(1, 14 - dep.prestige);
               const featuredPlace = getFeaturedPlace(dep, `${grid.id}-${key}`);
+              const displayAnecdote = resultAnecdotes[getAnecdoteCacheKey(grid.id, placement, "result")]
+                ?? getFallbackAnecdote(dep);
+              const communityInsight = getCommunityInsightForPlacement(placement, departments, communityStatsStore);
               return (
                 <article className="story" key={key}>
-                  <div className="story-image">{dep.code}</div>
+                  <DepartmentThumbnail dep={dep} place={featuredPlace} className="story-image" />
                   <div>
                     <h3>{dep.name}</h3>
                     <p className="story-crossing">{row.label} × {col.label} · {cell.score}/9</p>
                     <PlaceSpotlight place={featuredPlace} code={dep.code} compact />
-                    <p className="stat">{pct}% des joueurs auraient probablement tenté ce département ici.</p>
-                    <p>{dep.anecdote}</p>
+                    <p className="stat">{pct}% des joueurs pourraient tenter ce département ici.</p>
+                    <DiscoverySignals
+                      displayAnecdote={displayAnecdote}
+                      communityInsight={communityInsight}
+                    />
+                    {!displayAnecdote.isFallback && <p><strong>{displayAnecdote.title}</strong></p>}
+                    <p>{displayAnecdote.content}</p>
                     <button className="text-button" onClick={() => openDepartmentAbout(placement, "result")}>
                       <Info size={15} /> À propos du département
                     </button>

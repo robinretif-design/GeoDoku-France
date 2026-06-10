@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-label="Illustration originale de l'etang de Berre industriel">
+  <rect width="900" height="420" rx="40" fill="#263a59"/>
+  <path d="M0 292c112-28 204-25 312 5 128 36 250 26 371-7 80-22 151-21 217-1v131H0Z" fill="#2e8790"/>
+  <path d="M124 252h224v92H124zM438 204h96v140h-96zM588 170h72v174h-72z" fill="#f6f0e4" opacity=".74"/>
+  <g stroke="#c8ad82" stroke-width="13" stroke-linecap="round" opacity=".85">
+    <path d="M486 182c-32-50 38-55 0-105"/>
+    <path d="M622 148c-28-45 34-52 0-94"/>
+  </g>
+  <circle cx="718" cy="102" r="42" fill="#fff1bd" opacity=".68"/>
+</svg>

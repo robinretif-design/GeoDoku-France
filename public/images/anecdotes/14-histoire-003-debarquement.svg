@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-label="Illustration originale de l'anecdote du Debarquement">
+  <rect width="900" height="420" rx="40" fill="#2b3d59"/>
+  <path d="M0 230c92-24 176-20 270 8 119 36 223 35 344-2 92-28 185-31 286-1v185H0Z" fill="#c8ad82"/>
+  <path d="M0 186c114-34 218-35 330 0 122 39 235 36 362-2 80-24 144-22 208 4v70H0Z" fill="#f6f0e4" opacity=".36"/>
+  <g stroke="#fff8e7" stroke-width="15" stroke-linecap="round">
+    <path d="M270 108v142"/>
+    <path d="M212 176h116"/>
+    <path d="M506 86v178"/>
+    <path d="M435 170h142"/>
+    <path d="M680 132v118"/>
+    <path d="M631 186h98"/>
+  </g>
+</svg>

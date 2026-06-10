@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Illustration geographique abstraite">
+  <defs>
+    <linearGradient id="bg" x1="60" y1="20" x2="600" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#223653"/>
+      <stop offset=".62" stop-color="#2b4163"/>
+      <stop offset="1" stop-color="#8a725c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="42%" cy="28%" r="62%">
+      <stop offset="0" stop-color="#fff1c8" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#fff1c8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="420" rx="48" fill="url(#bg)"/>
+  <rect width="640" height="420" rx="48" fill="url(#glow)"/>
+  <path d="M318 68 437 122 478 220 442 322 344 364 233 332 169 242 198 134Z" fill="#fff7df" opacity=".14"/>
+  <path d="M318 68 437 122 478 220 442 322 344 364 233 332 169 242 198 134Z" fill="none" stroke="#fff5d6" stroke-width="12" stroke-linejoin="round" opacity=".86"/>
+  <g opacity=".74" stroke="#fff5d6" stroke-width="8" stroke-linecap="round">
+    <path d="M234 174h172"/>
+    <path d="M234 236h172"/>
+    <path d="M292 118v180"/>
+    <path d="M356 118v180"/>
+  </g>
+  <circle cx="322" cy="208" r="34" fill="#8a5d3d" opacity=".92"/>
+</svg>

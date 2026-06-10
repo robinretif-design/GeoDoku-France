@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" role="img" aria-label="Illustration d'anecdote territoriale">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="640" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff8e7"/>
+      <stop offset=".55" stop-color="#f6f0e4"/>
+      <stop offset="1" stop-color="#e9dcc8"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="300" rx="34" fill="url(#bg)"/>
+  <path d="M88 86h238M88 138h368M88 190h292" stroke="#273a5c" stroke-width="16" stroke-linecap="round" opacity=".34"/>
+  <path d="M484 58 504 108 556 126 504 144 484 194 465 144 412 126 465 108Z" fill="#8a725c" opacity=".78"/>
+  <path d="M82 244c88-38 178-37 266 0 64 27 134 25 210-8" fill="none" stroke="#7a4f35" stroke-width="10" stroke-linecap="round" opacity=".32"/>
+</svg>

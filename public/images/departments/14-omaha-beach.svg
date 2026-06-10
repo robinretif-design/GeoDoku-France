@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-label="Illustration originale des plages du Debarquement">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="900" y2="560">
+      <stop offset="0" stop-color="#263a59"/>
+      <stop offset=".58" stop-color="#66788f"/>
+      <stop offset="1" stop-color="#c9ad82"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="560" rx="48" fill="url(#sky)"/>
+  <path d="M0 314c110-34 192-35 292-3 103 34 202 34 316 0 94-28 183-26 292 8v241H0Z" fill="#f6f0e4" opacity=".56"/>
+  <path d="M0 375c118-30 218-28 329 5 126 37 246 31 371-8 65-20 129-21 200-1v189H0Z" fill="#8a725c" opacity=".42"/>
+  <g stroke="#fff8e7" stroke-width="16" stroke-linecap="round" opacity=".9">
+    <path d="M232 205v118"/>
+    <path d="M184 258h96"/>
+    <path d="M452 176v158"/>
+    <path d="M389 244h126"/>
+    <path d="M672 215v104"/>
+    <path d="M630 260h84"/>
+  </g>
+  <path d="M112 416c153-34 275-34 430 0 91 20 177 20 276-2" fill="none" stroke="#fff8e7" stroke-width="9" stroke-linecap="round" opacity=".5"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-label="Illustration originale de l'anecdote Fort Boyard militaire">
+  <rect width="900" height="420" rx="40" fill="#243553"/>
+  <path d="M0 302c120-40 224-38 340 0 116 39 234 39 354 0 78-25 143-27 206-5v123H0Z" fill="#2f7b88"/>
+  <path d="M246 154c0-45 36-78 86-78h236c50 0 86 33 86 78v104c0 45-36 78-86 78H332c-50 0-86-33-86-78Z" fill="#dcc49b"/>
+  <g fill="#273a5c">
+    <rect x="324" y="140" width="42" height="52" rx="12"/>
+    <rect x="430" y="140" width="42" height="52" rx="12"/>
+    <rect x="536" y="140" width="42" height="52" rx="12"/>
+  </g>
+  <path d="M300 246h300" stroke="#fff8e7" stroke-width="18" stroke-linecap="round" opacity=".54"/>
+</svg>

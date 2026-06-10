@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Illustration de lieu remarquable">
+  <defs>
+    <linearGradient id="sky" x1="90" y1="20" x2="560" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#243553"/>
+      <stop offset="1" stop-color="#7a4f35"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="44" fill="url(#sky)"/>
+  <circle cx="476" cy="110" r="46" fill="#fff1c8" opacity=".72"/>
+  <path d="M72 326 202 190 312 298 404 206 568 326Z" fill="#fff7df" opacity=".22"/>
+  <path d="M72 326 202 190 312 298 404 206 568 326" fill="none" stroke="#fff7df" stroke-width="12" stroke-linejoin="round" opacity=".74"/>
+  <path d="M320 102c-46 0-82 36-82 80 0 64 82 144 82 144s82-80 82-144c0-44-36-80-82-80Zm0 112c-20 0-36-16-36-36s16-36 36-36 36 16 36 36-16 36-36 36Z" fill="#fff7df" opacity=".88"/>
+</svg>
