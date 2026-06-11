@@ -944,15 +944,41 @@ function App() {
 
       {showRules && (
         <div className="overlay" onClick={() => setShowRules(false)}>
-          <section className="modal" onClick={(e) => e.stopPropagation()}>
+          <section className="modal rules-modal" onClick={(e) => e.stopPropagation()}>
             <button className="close" onClick={() => setShowRules(false)}><X size={22} /></button>
             <h2>Comment jouer</h2>
-            <p>Chaque jour, une grille 3×3 croise plusieurs thèmes liés au territoire français.</p>
-            <p>Votre objectif n’est pas seulement de trouver une réponse correcte.</p>
-            <p>Vous devez placer les départements les plus pertinents, sans jamais utiliser deux fois le même.</p>
+            <p>Chaque jour, une grille 3×3 croise plusieurs thèmes liés aux territoires français.</p>
+            <p>Touchez une case, choisissez un département, puis complétez les 9 cases sans utiliser deux fois le même département.</p>
+            <p>Plusieurs réponses peuvent fonctionner pour un même croisement : le but est de trouver les départements les plus pertinents, originaux ou rares.</p>
             <p>Certaines réponses seront évidentes. D’autres seront plus rares, plus élégantes ou plus inattendues.</p>
-            <p>Le score, sur 101, récompense la cohérence, l’originalité, la rareté et votre capacité à optimiser toute la grille.</p>
+            <p>Le score, sur 101, récompense la cohérence de la grille, les choix rares et les placements bien optimisés.</p>
             <p><strong>Attention :</strong> utiliser trop tôt un département très polyvalent peut vous coûter cher.</p>
+            <p className="rules-transition">Le nom du jeu raconte aussi cette manière de jouer.</p>
+            <section className="name-explanation" aria-labelledby="name-explanation-title">
+              <p className="result-kicker">Nom du jeu</p>
+              <h3 id="name-explanation-title">Pourquoi GévoCroisée ?</h3>
+              <p>Le nom du jeu réunit trois idées qui en constituent le cœur.</p>
+              <p><strong>Gé</strong>, pour la géographie et les territoires français.</p>
+              <p>
+                <strong>Évo</strong>, pour l’évocation. Car lorsqu’un joueur découvre deux critères,
+                il ne cherche pas seulement une réponse exacte. Il mobilise aussi ses souvenirs,
+                sa culture générale, ses intuitions et les associations d’idées que ces indices lui inspirent.
+              </p>
+              <p>
+                <strong>Croisée</strong>, enfin, parce que tout le jeu repose sur des croisements.
+                Chaque case naît de la rencontre entre deux critères. Chaque réponse se trouve
+                à l’intersection de plusieurs connaissances. Et chaque département révèle des liens
+                inattendus entre l’histoire, la culture, le patrimoine, les paysages ou les traditions.
+              </p>
+              <p>
+                GévoCroisée est donc un jeu où la géographie rencontre l’évocation,
+                à travers une multitude de croisements.
+              </p>
+              <p className="name-explanation-closing">
+                Car la France se découvre rarement par une seule réponse.
+                Elle se révèle là où les idées se croisent.
+              </p>
+            </section>
           </section>
         </div>
       )}

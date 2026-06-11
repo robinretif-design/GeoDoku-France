@@ -211,6 +211,48 @@ cursor: pointer;
 .modal h2 { font-family: Georgia, serif; font-size: 28px; text-align: center; }
 .modal p { color: var(--muted); font-size: 17px; line-height: 1.5; }
 .close { position: absolute; right: 16px; top: 16px; border: 1px solid var(--line); background: white; border-radius: 999px; width: 42px; height: 42px; display: grid; place-items: center; }
+.rules-modal {
+  max-height: min(820px, calc(100vh - 36px));
+  overflow-y: auto;
+}
+.rules-transition {
+  margin-top: 18px;
+  color: var(--ink) !important;
+  font-weight: 750;
+}
+.name-explanation {
+  margin-top: 22px;
+  border: 1px solid rgba(39,58,92,.16);
+  border-radius: 18px;
+  padding: 18px;
+  background:
+    linear-gradient(135deg, rgba(39,58,92,.06), rgba(31,138,112,.05)),
+    rgba(255,253,247,.74);
+}
+.name-explanation h3 {
+  margin: 0 0 12px;
+  font-family: Georgia, serif;
+  font-size: 25px;
+  line-height: 1.12;
+  color: var(--ink);
+}
+.name-explanation p {
+  margin: 0 0 11px;
+  font-size: 15px;
+  line-height: 1.52;
+}
+.name-explanation p:last-child {
+  margin-bottom: 0;
+}
+.name-explanation strong {
+  color: var(--blue);
+}
+.name-explanation-closing {
+  border-top: 1px solid rgba(122,79,53,.18);
+  padding-top: 12px;
+  color: var(--ink) !important;
+  font-weight: 750;
+}
 
 .department-about {
   width: min(700px, 100%);
