@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">Logo GévoCroisée</title>
+  <desc id="desc">Logo officiel GévoCroisée avec symbole C1 hexagone discret, nom et sous-titre.</desc>
+  <rect width="960" height="240" rx="32" fill="#FFFFFF"/>
+  <g transform="translate(72 48) scale(.28125)">
+    <rect width="512" height="512" rx="116" fill="#17213A"/>
+    <path d="M256 86L403 171V341L256 426L109 341V171Z" fill="none" stroke="#F4F6F0" stroke-width="28" stroke-linejoin="round" opacity=".5"/>
+    <path d="M122 122H220V220H122V122Z" fill="#1F8A70"/>
+    <path d="M292 122H390V220H292V122Z" fill="#F7C948"/>
+    <path d="M122 292H220V390H122V292Z" fill="#F4F6F0"/>
+    <path d="M292 292H390V390H292V292Z" fill="#FF6B4A"/>
+    <path d="M256 90V422" fill="none" stroke="#F4F6F0" stroke-width="44" stroke-linecap="round"/>
+    <path d="M90 256H422" fill="none" stroke="#F4F6F0" stroke-width="44" stroke-linecap="round"/>
+    <circle cx="256" cy="256" r="58" fill="#17213A"/>
+    <circle cx="256" cy="256" r="24" fill="#FF6B4A"/>
+  </g>
+  <text x="252" y="113" fill="#17213A" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="68" font-weight="850">GévoCroisée</text>
+  <text x="256" y="157" fill="#1F8A70" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="700">Le jeu des territoires français à la croisée des idées.</text>
+</svg>

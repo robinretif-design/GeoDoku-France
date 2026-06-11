@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">GévoCroisée</title>
+  <desc id="desc">Icône officielle GévoCroisée : quatre idées se croisent dans un hexagone discret évoquant les territoires français.</desc>
+  <rect width="512" height="512" rx="116" fill="#17213A"/>
+  <path d="M256 86L403 171V341L256 426L109 341V171Z" fill="none" stroke="#F4F6F0" stroke-width="28" stroke-linejoin="round" opacity=".5"/>
+  <path d="M122 122H220V220H122V122Z" fill="#1F8A70"/>
+  <path d="M292 122H390V220H292V122Z" fill="#F7C948"/>
+  <path d="M122 292H220V390H122V292Z" fill="#F4F6F0"/>
+  <path d="M292 292H390V390H292V292Z" fill="#FF6B4A"/>
+  <path d="M256 90V422" fill="none" stroke="#F4F6F0" stroke-width="44" stroke-linecap="round"/>
+  <path d="M90 256H422" fill="none" stroke="#F4F6F0" stroke-width="44" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="58" fill="#17213A"/>
+  <circle cx="256" cy="256" r="24" fill="#FF6B4A"/>
+</svg>

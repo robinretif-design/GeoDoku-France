@@ -1,14 +1,15 @@
 
 :root {
-  --bg: #f7f2e8;
-  --paper: #fffdf7;
-  --ink: #14213d;
-  --muted: #667085;
-  --line: #ded4c5;
-  --line-strong: #cbbda8;
-  --navy: #101828;
-  --blue: #273a5c;
-  --accent: #7a4f35;
+  --bg: #f4f6f0;
+  --paper: #ffffff;
+  --ink: #111827;
+  --muted: #64748b;
+  --line: #d8c9b6;
+  --line-strong: #c7b69f;
+  --navy: #17213a;
+  --blue: #1f8a70;
+  --accent: #ff6b4a;
+  --yellow: #f7c948;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -37,9 +38,10 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   text-align: left;
 }
-.brand strong { display: block; font-family: Georgia, serif; font-size: 25px; line-height: 1; }
-.brand span { text-transform: uppercase; font-size: 13px; letter-spacing: .24em; }
-.logo { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: var(--navy); color: white; }
+.brand strong { display: block; font-size: 25px; line-height: 1; font-weight: 850; letter-spacing: 0; }
+.brand span { display: block; margin-top: 4px; color: var(--blue); text-transform: none; font-size: 13px; font-weight: 750; letter-spacing: 0; }
+.logo { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; overflow: hidden; background: transparent; color: white; flex: 0 0 48px; }
+.logo img { display: block; width: 48px; height: 48px; }
 
 .ghost, .secondary {
   border: 1px solid var(--line);
@@ -84,7 +86,7 @@ h1 { font-family: Georgia, serif; font-size: clamp(42px, 8vw, 88px); line-height
 
 .primary {
   border: none;
-  background: linear-gradient(135deg, #243553, #0d1321);
+  background: linear-gradient(135deg, var(--navy), #0f172a);
   color: white;
   border-radius: 999px;
   padding: 17px 24px;

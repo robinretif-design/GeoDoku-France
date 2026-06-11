@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">Logo GévoCroisée</title>
+  <desc id="desc">Logo horizontal GévoCroisée avec symbole de croisement et nom de marque.</desc>
+  <rect width="960" height="240" rx="32" fill="#FFFFFF"/>
+  <g transform="translate(72 48)">
+    <rect width="144" height="144" rx="34" fill="#17213A"/>
+    <path d="M35 35H62V62H35V35Z" fill="#1F8A70"/>
+    <path d="M82 35H109V62H82V35Z" fill="#F7C948"/>
+    <path d="M35 82H62V109H35V82Z" fill="#F4F6F0"/>
+    <path d="M82 82H109V109H82V82Z" fill="#FF6B4A"/>
+    <path d="M72 25V119" fill="none" stroke="#F4F6F0" stroke-width="14" stroke-linecap="round"/>
+    <path d="M25 72H119" fill="none" stroke="#F4F6F0" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="72" cy="72" r="18" fill="#17213A"/>
+    <circle cx="72" cy="72" r="7" fill="#FF6B4A"/>
+  </g>
+  <text x="252" y="113" fill="#17213A" font-family="Sora, Plus Jakarta Sans, Inter, Arial, sans-serif" font-size="68" font-weight="850">GévoCroisée</text>
+  <text x="256" y="157" fill="#1F8A70" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Le jeu des territoires français à la croisée des idées.</text>
+</svg>

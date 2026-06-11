@@ -1,4 +1,13 @@
-# GeoDoku France V0.3
+# GévoCroisée
+
+Le jeu des territoires français à la croisée des idées.
+
+Chaque jour, croisez vos idées et redécouvrez les départements français.
+
+- Nom public : GévoCroisée
+- Slug ASCII : `gevocroisee`
+- Domaine cible : `https://gevocroisee.fr`
+- Réseaux sociaux : `@gevocroisee`
 
 ## Correctifs V0.3
 
@@ -18,7 +27,7 @@ npm run dev
 
 ## Analytics
 
-GeoDoku ne charge aucun analytics par défaut. Le code n'ajoute pas d'identifiant joueur, ne lit pas les réponses pour l'analytics et n'envoie aucune donnée personnelle depuis l'application.
+GévoCroisée ne charge aucun analytics par défaut. Le code n'ajoute pas d'identifiant joueur, ne lit pas les réponses pour l'analytics et n'envoie aucune donnée personnelle depuis l'application.
 
 La configuration se fait avec des variables d'environnement Vite, par exemple dans `.env.local` en développement ou dans les variables de build de l'hébergeur.
 
@@ -45,7 +54,7 @@ Le code charge uniquement le script GA4 standard et ne transmet pas d'événemen
 
 ```env
 VITE_ANALYTICS_PROVIDER=plausible
-VITE_PLAUSIBLE_DOMAIN=geodoku.fr
+VITE_PLAUSIBLE_DOMAIN=gevocroisee.fr
 ```
 
 Optionnel si le script Plausible est auto-hébergé :
@@ -62,7 +71,7 @@ VITE_UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 VITE_UMAMI_SCRIPT_URL=https://analytics.example.com/script.js
 ```
 
-Événements personnalisés Umami déclenchés par GeoDoku :
+Événements personnalisés Umami déclenchés par GévoCroisée :
 
 - `game_started`
 - `game_completed`
@@ -129,7 +138,7 @@ Les services de sélection ne retournent pas les anecdotes non validées par dé
 
 ### Sélection en jeu
 
-Dans l'expérience de résultat et dans la fiche "À propos du département", GeoDoku utilise le moteur éditorial quand une anecdote validée est disponible.
+Dans l'expérience de résultat et dans la fiche "À propos du département", GévoCroisée utilise le moteur éditorial quand une anecdote validée est disponible.
 
 Logique appliquée :
 

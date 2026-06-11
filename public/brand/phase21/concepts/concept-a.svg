@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Concept A - GévoCroisée cartographique moderne</title>
+  <desc id="desc">Planche de concept visuel territoriale, cartographique et institutionnelle moderne.</desc>
+  <rect width="1200" height="720" fill="#F5F7F2"/>
+  <rect x="64" y="64" width="1072" height="592" rx="36" fill="#FFFFFF" stroke="#CBD5D1" stroke-width="2"/>
+  <g transform="translate(124 126)">
+    <rect width="208" height="208" rx="48" fill="#18324A"/>
+    <path d="M50 64C78 44 108 42 136 62C162 81 166 116 143 143C120 171 84 171 62 146C40 121 28 81 50 64Z" fill="#F5F7F2" opacity=".96"/>
+    <path d="M60 65C91 76 121 91 151 118" fill="none" stroke="#2F6F62" stroke-width="12" stroke-linecap="round"/>
+    <path d="M105 42V166" fill="none" stroke="#D66A3A" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="105" cy="105" r="17" fill="#FFFFFF"/>
+    <circle cx="105" cy="105" r="7" fill="#D66A3A"/>
+    <path d="M44 105H166" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity=".42"/>
+    <path d="M105 44V166" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity=".32"/>
+  </g>
+  <text x="380" y="165" fill="#18324A" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="62" font-weight="800">GévoCroisée</text>
+  <text x="382" y="212" fill="#2F6F62" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="25" font-weight="650" letter-spacing="1">Territoires, coordonnées, intersections</text>
+  <text x="124" y="408" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="750">Concept</text>
+  <text x="124" y="452" fill="#334155" font-family="Inter, Arial, sans-serif" font-size="22">Un atlas numérique sobre : lignes de coordonnées, contour territorial suggéré, point d'intersection central.</text>
+  <text x="124" y="512" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="750">Usage</text>
+  <text x="124" y="556" fill="#334155" font-family="Inter, Arial, sans-serif" font-size="22">Convient aux interfaces calmes, aux critères précis, aux fiches départementales et aux cartes éditoriales.</text>
+  <g transform="translate(760 420)">
+    <rect width="84" height="84" rx="20" fill="#18324A"/>
+    <rect x="106" width="84" height="84" rx="20" fill="#2F6F62"/>
+    <rect x="212" width="84" height="84" rx="20" fill="#D66A3A"/>
+    <rect x="318" width="84" height="84" rx="20" fill="#F5F7F2" stroke="#CBD5D1" stroke-width="2"/>
+    <text x="0" y="122" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="18">#18324A</text>
+    <text x="106" y="122" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="18">#2F6F62</text>
+    <text x="212" y="122" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="18">#D66A3A</text>
+    <text x="318" y="122" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="18">#F5F7F2</text>
+  </g>
+</svg>

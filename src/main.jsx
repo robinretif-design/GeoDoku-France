@@ -1,8 +1,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Archive, BarChart3, HelpCircle, Home, Info, Map, RotateCcw, Share2, X } from "lucide-react";
-import { getAnalyticsDebugState, initAnalytics, trackGeoDokuEvent } from "./analytics.js";
+import { Archive, BarChart3, HelpCircle, Home, Info, RotateCcw, Share2, X } from "lucide-react";
+import { getAnalyticsDebugState, initAnalytics, trackGevocroiseeEvent } from "./analytics.js";
 import { departments, getTodayGrid, grids } from "./gameData";
 import { cellKey, findMasterMove, rank, scoreCell, scoreGrid } from "./scoring";
 import {
@@ -329,7 +329,7 @@ function MediaFrame({ className = "", src, fallbackSrc, code, label, ariaLabel, 
   }, [src, fallbackSrc]);
 
   return (
-    <div className={`media-frame ${className}`} role="img" aria-label={ariaLabel || label || code || "Visuel GeoDoku"}>
+    <div className={`media-frame ${className}`} role="img" aria-label={ariaLabel || label || code || "Visuel GévoCroisée"}>
       {hasUsableImage && (
         <img
           src={imageSrc}
@@ -374,7 +374,7 @@ function AnecdoteMedia({ displayAnecdote, dep }) {
 function logAnecdoteSelection(dep, selection, reason) {
   if (!import.meta.env.DEV) return;
 
-  console.info("[GeoDoku anecdotes]", {
+  console.info("[GévoCroisée anecdotes]", {
     departmentCode: dep.code,
     departmentName: dep.name,
     source: selection.isFallback ? "fallback" : "validated",
@@ -424,7 +424,7 @@ function selectDepartmentAnecdote(placement, displayContext = "result") {
   }
 
   if (selected && !isAnecdoteValidated(selected) && import.meta.env.DEV) {
-    console.warn("[GeoDoku anecdotes] Anecdote non validée rejetée avant affichage", {
+    console.warn("[GévoCroisée anecdotes] Anecdote non validée rejetée avant affichage", {
       departmentCode: dep.code,
       anecdoteId: selected.id,
       status: selected.statut_validation,
@@ -591,7 +591,7 @@ function App() {
   const [discoveryStats, setDiscoveryStats] = useState(getDiscoveryStats);
   const [collectionStats, setCollectionStats] = useState(getCollectionsStats);
 
-  const editionLabel = `GeoDoku France #${grid.id}`;
+  const editionLabel = `GévoCroisée #${grid.id}`;
   const todayResult = dailyResults[todayGrid.id];
   const isCurrentDailyEdition = grid.id === todayGrid.id;
   const currentDailyResult = isCurrentDailyEdition ? dailyResults[grid.id] : null;
@@ -655,7 +655,7 @@ function App() {
 
   function openRules() {
     setShowRules(true);
-    trackGeoDokuEvent("rules_opened", { screen });
+    trackGevocroiseeEvent("rules_opened", { screen });
   }
 
   function openDepartmentAbout(placement, context = "unknown") {
@@ -669,7 +669,7 @@ function App() {
       ...placement,
       displayAnecdote: cachedAnecdote ?? selectDepartmentAnecdote(placement, context),
     });
-    trackGeoDokuEvent("department_opened", {
+    trackGevocroiseeEvent("department_opened", {
       department: placement.dep.name,
       departmentCode: placement.dep.code,
       departmentName: placement.dep.name,
@@ -735,7 +735,7 @@ function App() {
     setAboutPlacement(null);
     setResultAnecdotes({});
     setCellAttemptCounts({});
-    trackGeoDokuEvent("game_started", getEditionEventData(nextGrid, todayGrid));
+    trackGevocroiseeEvent("game_started", getEditionEventData(nextGrid, todayGrid));
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -775,7 +775,7 @@ function App() {
       return;
     }
 
-    trackGeoDokuEvent("game_completed", {
+    trackGevocroiseeEvent("game_completed", {
       edition: grid.id,
       editionId: grid.id,
       difficulty: grid.difficulty ?? "normal",
@@ -817,7 +817,7 @@ function App() {
   }
 
   async function share() {
-    trackGeoDokuEvent("game_shared", {
+    trackGevocroiseeEvent("game_shared", {
       edition: grid.id,
       editionId: grid.id,
       score: computed.total,
@@ -843,7 +843,7 @@ function App() {
       "",
       shareGrid,
       "",
-      "https://geodoku.fr",
+      "https://gevocroisee.fr",
     ].join("\n");
     try {
       await navigator.clipboard.writeText(text);
@@ -860,7 +860,7 @@ function App() {
           <p className="edition">Debug analytics</p>
           <h1>Configuration analytics</h1>
           <p className="debug-note">
-            GeoDoku ne collecte aucune donnée personnelle dans son code. Le trafic global est mesuré uniquement si un fournisseur externe est configuré au build.
+            GévoCroisée ne collecte aucune donnée personnelle dans son code. Le trafic global est mesuré uniquement si un fournisseur externe est configuré au build.
           </p>
 
           <div className="debug-grid">
@@ -904,10 +904,12 @@ function App() {
     <main className="app">
       <header className="topbar">
         <button className="brand brand-button" onClick={goHome} title="Retour à l’accueil">
-          <div className="logo"><Map size={19} /></div>
+          <div className="logo" aria-hidden="true">
+            <img src="/brand/gevocroisee-mark.svg" alt="" />
+          </div>
           <div>
-            <strong>GeoDoku</strong>
-            <span>France</span>
+            <strong>GévoCroisée</strong>
+            <span>Le jeu des territoires français à la croisée des idées.</span>
           </div>
         </button>
         <div className="topbar-actions">
@@ -943,10 +945,11 @@ function App() {
       {screen === "home" && (
         <section className="hero">
           <div className="edition-row">
-            <p className="edition">GeoDoku France #{todayGrid.id}</p>
+            <p className="edition">GévoCroisée #{todayGrid.id}</p>
             <DifficultyBadge difficulty={todayGrid.difficulty} />
           </div>
           <h1>La France en puzzle.</h1>
+          <p className="hero-subtitle">Chaque jour, croisez vos idées et redécouvrez les départements français.</p>
           <p>
             Une grille, neuf cases, et des départements à placer avec justesse.
             Le plus difficile n’est pas toujours de trouver une bonne réponse,
@@ -974,7 +977,7 @@ function App() {
                 <article className="result-card archive-card" key={archiveGrid.id}>
                   <div className="archive-heading">
                     <p className="result-kicker">
-                      GeoDoku France #{archiveGrid.id}{isToday ? " · aujourd’hui" : ""}
+                      GévoCroisée #{archiveGrid.id}{isToday ? " · aujourd’hui" : ""}
                     </p>
                     <DifficultyBadge difficulty={archiveGrid.difficulty} />
                   </div>

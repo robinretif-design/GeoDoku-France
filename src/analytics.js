@@ -11,12 +11,12 @@ function isAnalyticsDebugMode() {
 
 function analyticsDebugLog(message, data = {}) {
   if (!isAnalyticsDebugMode()) return;
-  console.info(`[GeoDoku analytics] ${message}`, data);
+  console.info(`[GévoCroisée analytics] ${message}`, data);
 }
 
 function getAnalyticsScript(provider) {
   if (typeof document === "undefined") return null;
-  return document.querySelector(`[data-geodoku-analytics="${provider}"]`);
+  return document.querySelector(`[data-gevocroisee-analytics="${provider}"]`);
 }
 
 function appendScript({ provider, scriptUrl, defer = true, async = false, attributes = {} }) {
@@ -29,7 +29,7 @@ function appendScript({ provider, scriptUrl, defer = true, async = false, attrib
   if (existingScript) {
     analyticsDebugLog("script already injected", {
       provider,
-      status: existingScript.dataset.geodokuAnalyticsStatus ?? "unknown",
+      status: existingScript.dataset.gevocroiseeAnalyticsStatus ?? "unknown",
     });
     return existingScript;
   }
@@ -38,20 +38,20 @@ function appendScript({ provider, scriptUrl, defer = true, async = false, attrib
   script.src = scriptUrl;
   script.defer = defer;
   script.async = async;
-  script.dataset.geodokuAnalytics = provider;
-  script.dataset.geodokuAnalyticsStatus = "loading";
+  script.dataset.gevocroiseeAnalytics = provider;
+  script.dataset.gevocroiseeAnalyticsStatus = "loading";
 
   Object.entries(attributes).forEach(([name, value]) => {
     if (value) script.setAttribute(name, value);
   });
 
   script.addEventListener("load", () => {
-    script.dataset.geodokuAnalyticsStatus = "loaded";
+    script.dataset.gevocroiseeAnalyticsStatus = "loaded";
     analyticsDebugLog("script loaded", { provider, scriptUrl });
   });
 
   script.addEventListener("error", () => {
-    script.dataset.geodokuAnalyticsStatus = "error";
+    script.dataset.gevocroiseeAnalyticsStatus = "error";
     analyticsDebugLog("script failed", { provider, scriptUrl });
   });
 
@@ -97,7 +97,7 @@ export function getAnalyticsConfig() {
       label: "Netlify Analytics",
       enabled: true,
       mode: "Hébergeur",
-      detail: "Aucun script n'est injecté par GeoDoku : l'analytics est activé côté Netlify.",
+      detail: "Aucun script n'est injecté par GévoCroisée : l'analytics est activé côté Netlify.",
     };
   }
 
@@ -227,7 +227,7 @@ export function initAnalytics() {
   }
 }
 
-export function trackGeoDokuEvent(eventName, eventData = {}) {
+export function trackGevocroiseeEvent(eventName, eventData = {}) {
   if (typeof window === "undefined") return;
 
   const config = getAnalyticsConfig();
@@ -247,7 +247,7 @@ export function getAnalyticsDebugState() {
   const umamiWebsiteId = envValue("VITE_UMAMI_WEBSITE_ID");
   const umamiScriptUrl = envValue("VITE_UMAMI_SCRIPT_URL");
   const script = config.provider !== "netlify" ? getAnalyticsScript(config.provider) : null;
-  const scriptStatus = script?.dataset.geodokuAnalyticsStatus ?? (script ? "loading" : "not_injected");
+  const scriptStatus = script?.dataset.gevocroiseeAnalyticsStatus ?? (script ? "loading" : "not_injected");
   const hasUmamiApi = typeof window !== "undefined" && typeof window.umami?.track === "function";
 
   return {

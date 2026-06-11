@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GévoCroisée - Prévisualisation concepts Phase 22</title>
+  <style>
+    :root {
+      --page: #f4f6f0;
+      --ink: #111827;
+      --muted: #657084;
+      --line: #d8c9b6;
+      --paper: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1180px;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: 1600px;
+      margin: 0 auto;
+      padding: 54px 56px 62px;
+    }
+
+    .intro {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 34px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 54px;
+      line-height: .96;
+      letter-spacing: 0;
+      color: #17213a;
+    }
+
+    .subtitle {
+      max-width: 620px;
+      margin: 0;
+      color: #405065;
+      font-size: 21px;
+      line-height: 1.42;
+      font-weight: 650;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .concept {
+      min-height: 1030px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--paper);
+      box-shadow: 0 20px 60px rgba(23, 33, 58, .08);
+    }
+
+    .concept h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.1;
+    }
+
+    .tagline {
+      min-height: 50px;
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.42;
+      font-weight: 650;
+    }
+
+    .label {
+      margin: 24px 0 10px;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .logo-frame,
+    .asset-frame,
+    .og-frame {
+      display: grid;
+      place-items: center;
+      border: 1px solid #e3d8ca;
+      border-radius: 18px;
+      background: #fbfaf7;
+    }
+
+    .logo-frame {
+      height: 128px;
+      padding: 16px;
+    }
+
+    .asset-grid {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .asset-frame.small {
+      height: 112px;
+    }
+
+    .asset-frame.large {
+      height: 112px;
+    }
+
+    .og-frame {
+      height: 210px;
+      overflow: hidden;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .swatch {
+      min-height: 76px;
+      border-radius: 14px;
+      border: 1px solid rgba(17, 24, 39, .1);
+      overflow: hidden;
+      display: grid;
+      align-content: end;
+    }
+
+    .swatch span {
+      display: block;
+      padding: 8px 7px;
+      background: rgba(255, 255, 255, .78);
+      color: #1f2937;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .note {
+      margin: 22px 0 0;
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    svg { max-width: 100%; height: auto; display: block; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="intro">
+      <div>
+        <h1>GévoCroisée<br />Concepts visuels</h1>
+      </div>
+      <p class="subtitle">Planche de validation Phase 22 : comparaison des trois directions créatives issues du brand book, avec logo, favicon, icône PWA, aperçu OpenGraph et palette.</p>
+    </section>
+
+    <section class="board" aria-label="Concepts GévoCroisée">
+      <article class="concept">
+        <h2>Concept A</h2>
+        <p class="tagline">Territorial, cartographique, institutionnel moderne.</p>
+
+        <p class="label">Logo</p>
+        <div class="logo-frame">
+          <svg viewBox="0 0 420 104" role="img" aria-label="Logo concept A">
+            <rect width="420" height="104" rx="16" fill="#ffffff"/>
+            <g transform="translate(14 16)">
+              <rect width="72" height="72" rx="18" fill="#18324A"/>
+              <path d="M18 22C30 13 43 12 54 21C64 30 66 43 56 55C45 67 31 66 22 56C13 46 9 29 18 22Z" fill="#F5F7F2"/>
+              <path d="M22 24C35 29 48 36 60 48" fill="none" stroke="#2F6F62" stroke-width="6" stroke-linecap="round"/>
+              <path d="M36 15V58" fill="none" stroke="#D66A3A" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="36" cy="36" r="7" fill="#ffffff"/>
+              <circle cx="36" cy="36" r="3" fill="#D66A3A"/>
+            </g>
+            <text x="104" y="45" fill="#18324A" font-family="Inter, Arial, sans-serif" font-size="33" font-weight="850">GévoCroisée</text>
+            <text x="106" y="73" fill="#2F6F62" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="750">Territoires, coordonnées, intersections</text>
+          </svg>
+        </div>
+
+        <p class="label">Favicon et PWA</p>
+        <div class="asset-grid">
+          <div class="asset-frame small">
+            <svg width="48" height="48" viewBox="0 0 64 64" aria-label="Favicon concept A">
+              <rect width="64" height="64" rx="16" fill="#18324A"/>
+              <path d="M17 22C29 13 42 12 53 21C62 30 63 43 54 54C44 65 30 65 21 55C12 45 8 29 17 22Z" fill="#F5F7F2"/>
+              <path d="M21 23C33 29 46 36 57 48" fill="none" stroke="#2F6F62" stroke-width="6" stroke-linecap="round"/>
+              <path d="M34 14V57" fill="none" stroke="#D66A3A" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="34" cy="34" r="7" fill="#ffffff"/>
+              <circle cx="34" cy="34" r="3" fill="#D66A3A"/>
+            </svg>
+          </div>
+          <div class="asset-frame large">
+            <svg width="92" height="92" viewBox="0 0 128 128" aria-label="Icône PWA concept A">
+              <rect width="128" height="128" rx="30" fill="#18324A"/>
+              <path d="M34 42C58 25 83 24 105 42C124 60 126 86 108 108C87 130 59 129 41 109C23 89 16 55 34 42Z" fill="#F5F7F2"/>
+              <path d="M42 45C66 55 91 69 114 92" fill="none" stroke="#2F6F62" stroke-width="11" stroke-linecap="round"/>
+              <path d="M64 26V108" fill="none" stroke="#D66A3A" stroke-width="11" stroke-linecap="round"/>
+              <circle cx="64" cy="64" r="14" fill="#ffffff"/>
+              <circle cx="64" cy="64" r="6" fill="#D66A3A"/>
+            </svg>
+          </div>
+        </div>
+
+        <p class="label">OpenGraph</p>
+        <div class="og-frame">
+          <svg viewBox="0 0 520 273" aria-label="OpenGraph concept A">
+            <rect width="520" height="273" fill="#F5F7F2"/>
+            <rect x="28" y="30" width="464" height="214" rx="22" fill="#ffffff" stroke="#CBD5D1"/>
+            <g transform="translate(62 62) scale(.78)">
+              <rect width="96" height="96" rx="24" fill="#18324A"/>
+              <path d="M25 31C42 20 61 19 76 32C90 44 91 64 78 80C62 96 42 95 29 80C16 66 11 40 25 31Z" fill="#F5F7F2"/>
+              <path d="M31 33C49 40 66 50 83 68" fill="none" stroke="#2F6F62" stroke-width="8" stroke-linecap="round"/>
+              <path d="M48 20V82" fill="none" stroke="#D66A3A" stroke-width="8" stroke-linecap="round"/>
+              <circle cx="48" cy="48" r="10" fill="#ffffff"/>
+              <circle cx="48" cy="48" r="4" fill="#D66A3A"/>
+            </g>
+            <text x="170" y="102" fill="#18324A" font-family="Inter, Arial, sans-serif" font-size="39" font-weight="850">GévoCroisée</text>
+            <text x="172" y="135" fill="#2F6F62" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="750">Le jeu des territoires français à la croisée des idées.</text>
+            <text x="62" y="198" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">Chaque jour, croisez vos idées.</text>
+          </svg>
+        </div>
+
+        <p class="label">Palette</p>
+        <div class="palette">
+          <div class="swatch" style="background:#18324A"><span>#18324A</span></div>
+          <div class="swatch" style="background:#2F6F62"><span>#2F6F62</span></div>
+          <div class="swatch" style="background:#D66A3A"><span>#D66A3A</span></div>
+          <div class="swatch" style="background:#F5F7F2"><span>#F5F7F2</span></div>
+          <div class="swatch" style="background:#CBD5D1"><span>#CBD5D1</span></div>
+        </div>
+        <p class="note">Lecture : très fiable et géographique, mais moins différenciante pour une marque de jeu quotidien.</p>
+      </article>
+
+      <article class="concept">
+        <h2>Concept B</h2>
+        <p class="tagline">Évocation, patrimoine, découverte.</p>
+
+        <p class="label">Logo</p>
+        <div class="logo-frame">
+          <svg viewBox="0 0 420 104" role="img" aria-label="Logo concept B">
+            <rect width="420" height="104" rx="16" fill="#FFFDF7"/>
+            <g transform="translate(14 16)">
+              <rect width="72" height="72" rx="20" fill="#24334F"/>
+              <path d="M19 54C30 43 39 33 53 18" fill="none" stroke="#D8A84F" stroke-width="7" stroke-linecap="round"/>
+              <path d="M20 20C32 30 44 40 56 54" fill="none" stroke="#6F7F4F" stroke-width="7" stroke-linecap="round"/>
+              <path d="M24 53C34 49 45 51 52 58" fill="none" stroke="#B85C38" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="36" cy="36" r="8" fill="#FFFDF7"/>
+              <circle cx="36" cy="36" r="3" fill="#B85C38"/>
+            </g>
+            <text x="104" y="45" fill="#24334F" font-family="Georgia, 'Times New Roman', serif" font-size="35" font-weight="700">GévoCroisée</text>
+            <text x="106" y="73" fill="#B85C38" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="750">Mémoire, indices, chemins de découverte</text>
+          </svg>
+        </div>
+
+        <p class="label">Favicon et PWA</p>
+        <div class="asset-grid">
+          <div class="asset-frame small">
+            <svg width="48" height="48" viewBox="0 0 64 64" aria-label="Favicon concept B">
+              <rect width="64" height="64" rx="17" fill="#24334F"/>
+              <path d="M18 48C28 38 38 27 48 16" fill="none" stroke="#D8A84F" stroke-width="7" stroke-linecap="round"/>
+              <path d="M18 18C30 28 40 38 50 49" fill="none" stroke="#6F7F4F" stroke-width="7" stroke-linecap="round"/>
+              <path d="M22 48C31 44 42 46 49 53" fill="none" stroke="#B85C38" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="33" cy="33" r="8" fill="#FFFDF7"/>
+              <circle cx="33" cy="33" r="3" fill="#B85C38"/>
+            </svg>
+          </div>
+          <div class="asset-frame large">
+            <svg width="92" height="92" viewBox="0 0 128 128" aria-label="Icône PWA concept B">
+              <rect width="128" height="128" rx="32" fill="#24334F"/>
+              <path d="M34 96C55 76 75 54 96 32" fill="none" stroke="#D8A84F" stroke-width="15" stroke-linecap="round"/>
+              <path d="M34 34C57 54 78 74 100 97" fill="none" stroke="#6F7F4F" stroke-width="15" stroke-linecap="round"/>
+              <path d="M43 96C62 88 84 92 98 106" fill="none" stroke="#B85C38" stroke-width="10" stroke-linecap="round"/>
+              <circle cx="64" cy="64" r="17" fill="#FFFDF7"/>
+              <circle cx="64" cy="64" r="7" fill="#B85C38"/>
+            </svg>
+          </div>
+        </div>
+
+        <p class="label">OpenGraph</p>
+        <div class="og-frame">
+          <svg viewBox="0 0 520 273" aria-label="OpenGraph concept B">
+            <rect width="520" height="273" fill="#F7F1E6"/>
+            <rect x="28" y="30" width="464" height="214" rx="22" fill="#FFFDF7" stroke="#D8C9B6"/>
+            <g transform="translate(62 62) scale(.78)">
+              <rect width="96" height="96" rx="26" fill="#24334F"/>
+              <path d="M26 72C42 56 56 40 72 24" fill="none" stroke="#D8A84F" stroke-width="12" stroke-linecap="round"/>
+              <path d="M26 26C43 42 58 57 75 73" fill="none" stroke="#6F7F4F" stroke-width="12" stroke-linecap="round"/>
+              <path d="M33 72C47 66 64 69 74 79" fill="none" stroke="#B85C38" stroke-width="8" stroke-linecap="round"/>
+              <circle cx="48" cy="48" r="13" fill="#FFFDF7"/>
+              <circle cx="48" cy="48" r="5" fill="#B85C38"/>
+            </g>
+            <text x="170" y="102" fill="#24334F" font-family="Georgia, 'Times New Roman', serif" font-size="39" font-weight="700">GévoCroisée</text>
+            <text x="172" y="135" fill="#B85C38" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="750">Le jeu des territoires français à la croisée des idées.</text>
+            <text x="62" y="198" fill="#1D2433" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">Redécouvrez les territoires par indices.</text>
+          </svg>
+        </div>
+
+        <p class="label">Palette</p>
+        <div class="palette">
+          <div class="swatch" style="background:#24334F"><span>#24334F</span></div>
+          <div class="swatch" style="background:#6F7F4F"><span>#6F7F4F</span></div>
+          <div class="swatch" style="background:#B85C38"><span>#B85C38</span></div>
+          <div class="swatch" style="background:#D8A84F"><span>#D8A84F</span></div>
+          <div class="swatch" style="background:#F7F1E6"><span>#F7F1E6</span></div>
+        </div>
+        <p class="note">Lecture : la plus chaleureuse et éditoriale, pertinente pour les anecdotes mais moins directe en favicon.</p>
+      </article>
+
+      <article class="concept">
+        <h2>Concept C</h2>
+        <p class="tagline">Jeu moderne, mobile-first, forte mémorisation.</p>
+
+        <p class="label">Logo</p>
+        <div class="logo-frame">
+          <svg viewBox="0 0 420 104" role="img" aria-label="Logo concept C">
+            <rect width="420" height="104" rx="16" fill="#ffffff"/>
+            <g transform="translate(14 16)">
+              <rect width="72" height="72" rx="18" fill="#17213A"/>
+              <path d="M18 18H31V31H18V18Z" fill="#1F8A70"/>
+              <path d="M41 18H54V31H41V18Z" fill="#F7C948"/>
+              <path d="M18 41H31V54H18V41Z" fill="#F4F6F0"/>
+              <path d="M41 41H54V54H41V41Z" fill="#FF6B4A"/>
+              <path d="M36 12V60" stroke="#F4F6F0" stroke-width="7" stroke-linecap="round"/>
+              <path d="M12 36H60" stroke="#F4F6F0" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="36" cy="36" r="9" fill="#17213A"/>
+              <circle cx="36" cy="36" r="4" fill="#FF6B4A"/>
+            </g>
+            <text x="104" y="45" fill="#17213A" font-family="Inter, Arial, sans-serif" font-size="35" font-weight="900">GévoCroisée</text>
+            <text x="106" y="73" fill="#1F8A70" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">Croiser. Trouver. Redécouvrir.</text>
+          </svg>
+        </div>
+
+        <p class="label">Favicon et PWA</p>
+        <div class="asset-grid">
+          <div class="asset-frame small">
+            <img src="public/brand/phase21/gevocroisee-favicon-32.png" width="48" height="48" alt="Favicon concept C" />
+          </div>
+          <div class="asset-frame large">
+            <img src="public/brand/phase21/gevocroisee-pwa-192.png" width="92" height="92" alt="Icône PWA concept C" />
+          </div>
+        </div>
+
+        <p class="label">OpenGraph</p>
+        <div class="og-frame">
+          <img src="public/brand/phase21/gevocroisee-opengraph.png" width="420" height="221" alt="OpenGraph concept C" />
+        </div>
+
+        <p class="label">Palette</p>
+        <div class="palette">
+          <div class="swatch" style="background:#17213A"><span>#17213A</span></div>
+          <div class="swatch" style="background:#1F8A70"><span>#1F8A70</span></div>
+          <div class="swatch" style="background:#FF6B4A"><span>#FF6B4A</span></div>
+          <div class="swatch" style="background:#F7C948"><span>#F7C948</span></div>
+          <div class="swatch" style="background:#F4F6F0"><span>#F4F6F0</span></div>
+        </div>
+        <p class="note">Lecture : la plus mémorisable et la plus exploitable en PWA, favicon, mobile et partage social.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

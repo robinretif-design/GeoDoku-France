@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Concept B - GévoCroisée évocation patrimoine découverte</title>
+  <desc id="desc">Planche de concept visuel chaleureuse, patrimoniale et tournée vers la découverte.</desc>
+  <rect width="1200" height="720" fill="#F7F1E6"/>
+  <rect x="64" y="64" width="1072" height="592" rx="36" fill="#FFFDF7" stroke="#D8C9B6" stroke-width="2"/>
+  <g transform="translate(124 126)">
+    <rect width="208" height="208" rx="52" fill="#24334F"/>
+    <path d="M52 151C83 118 105 94 141 55" fill="none" stroke="#D8A84F" stroke-width="18" stroke-linecap="round"/>
+    <path d="M54 58C82 81 111 104 154 151" fill="none" stroke="#6F7F4F" stroke-width="18" stroke-linecap="round"/>
+    <path d="M70 146C93 137 120 143 139 159" fill="none" stroke="#B85C38" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="105" cy="105" r="22" fill="#FFFDF7"/>
+    <circle cx="105" cy="105" r="9" fill="#B85C38"/>
+    <path d="M49 67C67 48 88 44 107 52" fill="none" stroke="#FFFDF7" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+    <path d="M128 61C148 73 159 92 158 114" fill="none" stroke="#FFFDF7" stroke-width="4" stroke-linecap="round" opacity=".45"/>
+  </g>
+  <text x="380" y="165" fill="#24334F" font-family="Fraunces, Literata, Georgia, serif" font-size="64" font-weight="800">GévoCroisée</text>
+  <text x="382" y="212" fill="#B85C38" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="650" letter-spacing=".6">Mémoire, indices, chemins de découverte</text>
+  <text x="124" y="408" fill="#1D2433" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="750">Concept</text>
+  <text x="124" y="452" fill="#4B5563" font-family="Inter, Arial, sans-serif" font-size="22">Un carnet de voyage quotidien : deux chemins se rencontrent, un point révèle le territoire.</text>
+  <text x="124" y="512" fill="#1D2433" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="750">Usage</text>
+  <text x="124" y="556" fill="#4B5563" font-family="Inter, Arial, sans-serif" font-size="22">Idéal pour les anecdotes, les lieux, les images éditoriales et une expérience plus sensible.</text>
+  <g transform="translate(760 420)">
+    <rect width="84" height="84" rx="20" fill="#24334F"/>
+    <rect x="106" width="84" height="84" rx="20" fill="#6F7F4F"/>
+    <rect x="212" width="84" height="84" rx="20" fill="#B85C38"/>
+    <rect x="318" width="84" height="84" rx="20" fill="#D8A84F"/>
+    <text x="0" y="122" fill="#5B4634" font-family="Inter, Arial, sans-serif" font-size="18">#24334F</text>
+    <text x="106" y="122" fill="#5B4634" font-family="Inter, Arial, sans-serif" font-size="18">#6F7F4F</text>
+    <text x="212" y="122" fill="#5B4634" font-family="Inter, Arial, sans-serif" font-size="18">#B85C38</text>
+    <text x="318" y="122" fill="#5B4634" font-family="Inter, Arial, sans-serif" font-size="18">#D8A84F</text>
+  </g>
+</svg>

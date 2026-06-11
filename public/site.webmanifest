@@ -1,21 +1,24 @@
 {
-  "name": "GeoDoku France",
-  "short_name": "GeoDoku",
-  "description": "Jeu quotidien de culture territoriale française.",
+  "id": "/",
+  "name": "GévoCroisée",
+  "short_name": "Gévo",
+  "description": "Le jeu des territoires français à la croisée des idées.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f6f0e4",
-  "theme_color": "#273a5c",
+  "orientation": "portrait-primary",
+  "background_color": "#F4F6F0",
+  "theme_color": "#17213A",
+  "categories": ["games", "education"],
   "icons": [
     {
-      "src": "/icons/geodoku-icon-192.png",
+      "src": "/icons/gevocroisee-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/geodoku-icon-512.png",
+      "src": "/icons/gevocroisee-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
