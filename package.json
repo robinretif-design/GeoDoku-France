@@ -1,8 +1,10 @@
 {
   "name": "gevocroisee",
+  "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build:anecdotes": "node scripts/generatePublicAnecdotesDataset.js",
+    "audit:media": "node scripts/auditMediaCatalog.js",
     "build": "vite build",
     "preview": "vite preview"
   },

@@ -28,9 +28,12 @@ import {
   recordCollectionDiscovery,
 } from "./services/collectionsService.js";
 import {
+  getAnecdoteMediaDetails,
   getAnecdoteMedia,
+  getDepartmentMediaDetails,
   getDepartmentMedia,
   getMediaAlt,
+  getPlaceMediaDetails,
   getPlaceMedia,
   MEDIA_FALLBACKS,
 } from "./services/mediaService.js";
@@ -210,6 +213,8 @@ function getFallbackAnecdote(dep) {
 }
 
 function toDisplayAnecdote(anecdote, collection = null) {
+  const media = getAnecdoteMediaDetails(anecdote);
+
   return {
     id: anecdote.id,
     title: anecdote.titre,
@@ -220,8 +225,9 @@ function toDisplayAnecdote(anecdote, collection = null) {
     tone: anecdote.ton,
     theme: anecdote.theme ?? null,
     collection,
-    image: getAnecdoteMedia(anecdote),
-    imageAlt: getMediaAlt(anecdote, anecdote.titre),
+    image: media?.src ?? getAnecdoteMedia(anecdote),
+    imageAlt: media?.alt ?? getMediaAlt(anecdote, anecdote.titre),
+    imageCredit: media?.requiresAttribution ? media.credit || media.attribution : "",
     isFallback: false,
   };
 }
@@ -318,11 +324,12 @@ function DiscoverySignals({ displayAnecdote, communityInsight }) {
   );
 }
 
-function MediaFrame({ className = "", src, fallbackSrc, code, label, ariaLabel, alt = "" }) {
+function MediaFrame({ className = "", src, fallbackSrc, code, label, ariaLabel, alt = "", credit = "" }) {
   const [failedSrc, setFailedSrc] = useState(null);
   const primaryFailed = Boolean(src) && failedSrc === src;
   const imageSrc = src && !primaryFailed ? src : fallbackSrc;
   const hasUsableImage = Boolean(imageSrc) && failedSrc !== imageSrc;
+  const visibleCredit = imageSrc === src ? credit : "";
 
   useEffect(() => {
     setFailedSrc(null);
@@ -340,20 +347,24 @@ function MediaFrame({ className = "", src, fallbackSrc, code, label, ariaLabel, 
       )}
       <span className="media-shade" aria-hidden="true" />
       {label && <span className="media-label">{label}</span>}
+      {visibleCredit && <span className="media-credit">{visibleCredit}</span>}
       {code && <span className="media-code">{code}</span>}
     </div>
   );
 }
 
 function DepartmentThumbnail({ dep, place = null, className = "story-image" }) {
+  const media = getDepartmentMediaDetails(dep, place);
+
   return (
     <MediaFrame
       className={className}
-      src={getDepartmentMedia(dep, place)}
+      src={media?.src ?? getDepartmentMedia(dep, place)}
       fallbackSrc={MEDIA_FALLBACKS.department}
       code={dep.code}
       ariaLabel={dep.name}
-      alt={getMediaAlt(dep, dep.name)}
+      alt={media?.alt ?? getMediaAlt(dep, dep.name)}
+      credit={media?.requiresAttribution ? media.credit || media.attribution : ""}
     />
   );
 }
@@ -367,6 +378,7 @@ function AnecdoteMedia({ displayAnecdote, dep }) {
       code={dep.code}
       label={displayAnecdote.isFallback ? "Anecdote" : displayAnecdote.category}
       alt={displayAnecdote.imageAlt}
+      credit={displayAnecdote.imageCredit}
     />
   );
 }
@@ -438,16 +450,18 @@ function selectDepartmentAnecdote(placement, displayContext = "result") {
 
 function PlaceSpotlight({ place, code, compact = false }) {
   if (!place) return null;
+  const media = getPlaceMediaDetails(place);
 
   return (
     <section className={`place-spotlight ${compact ? "compact" : ""}`}>
       <MediaFrame
         className="place-visual"
-        src={getPlaceMedia(place)}
+        src={media?.src ?? getPlaceMedia(place)}
         fallbackSrc={MEDIA_FALLBACKS.place}
         code={code}
         ariaLabel={place.name}
-        alt={getMediaAlt(place, place.name)}
+        alt={media?.alt ?? getMediaAlt(place, place.name)}
+        credit={media?.requiresAttribution ? media.credit || media.attribution : ""}
       />
       <div>
         <p className="place-type">{place.type}</p>
@@ -481,6 +495,8 @@ function DepartmentAbout({ placement, onClose }) {
     : dep.prestige >= 8
       ? "Bonus choix rare plafonné"
       : null;
+  const featuredPlaceMedia = getPlaceMediaDetails(featuredPlace);
+  const departmentMedia = getDepartmentMediaDetails(dep);
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -491,12 +507,13 @@ function DepartmentAbout({ placement, onClose }) {
           <section className="place-hero">
             <MediaFrame
               className="place-hero-visual"
-              src={getPlaceMedia(featuredPlace) ?? getDepartmentMedia(dep)}
+              src={featuredPlaceMedia?.src ?? departmentMedia?.src ?? getPlaceMedia(featuredPlace) ?? getDepartmentMedia(dep)}
               fallbackSrc={MEDIA_FALLBACKS.place}
               code={dep.code}
               label={featuredPlace.type}
               ariaLabel={featuredPlace.name}
-              alt={getMediaAlt(featuredPlace, featuredPlace.name)}
+              alt={featuredPlaceMedia?.alt ?? departmentMedia?.alt ?? getMediaAlt(featuredPlace, featuredPlace.name)}
+              credit={featuredPlaceMedia?.requiresAttribution ? featuredPlaceMedia.credit || featuredPlaceMedia.attribution : ""}
             />
             <div className="place-hero-copy">
               <p className="place-type">{featuredPlace.type}</p>
