@@ -1,5 +1,5 @@
 
-export const grids = [
+const editorialGrids = [
   {
     id: "001",
     difficulty: "normal",
@@ -28,7 +28,7 @@ export const grids = [
     ],
     rows: [
       { id: "memoire", label: "Mémoire et traces historiques", tags: ["memoire", "guerre", "patrimoine", "rude"] },
-      { id: "spectaculaire", label: "Relief spectaculaire", tags: ["spectaculaire", "sauvage", "montagne", "falaises", "volcanique"] },
+      { id: "spectaculaire", label: "Relief spectaculaire", tags: ["spectaculaire", "sauvage", "montagne", "volcanique"] },
       { id: "littoral", label: "Ouverture maritime", tags: ["littoral", "maritime", "portuaire"] },
     ],
   },
@@ -173,7 +173,7 @@ export const grids = [
     rows: [
       { id: "memoire-rurale", label: "Mémoire rurale", tags: ["memoire", "rural"] },
       { id: "sud-spectaculaire", label: "Sud spectaculaire", tags: ["spectaculaire", "mediterraneen"] },
-      { id: "traces-historiques", label: "Traces historiques", tags: ["memoire", "guerre"] },
+      { id: "traces-historiques", label: "Traces historiques", tags: ["memoire", "guerre", "patrimoine"] },
     ],
   },
   {
@@ -461,7 +461,7 @@ export const grids = [
     rows: [
       { id: "bretagne-celtique", label: "Bretagne celtique", tags: ["culture_celte", "maritime"] },
       { id: "estuaires-industriels", label: "Estuaires industriels", tags: ["industriel", "portuaire", "littoral"] },
-      { id: "ecrans-littoraux", label: "Écrans littoraux", tags: ["cinema", "littoral"] },
+      { id: "ecrans-littoraux", label: "Écrans littoraux", tags: ["cinema", "littoral", "culture_pop"] },
     ],
   },
   {
@@ -475,7 +475,7 @@ export const grids = [
       { id: "brutaliste-urbain", label: "Brutaliste urbain", tags: ["brutaliste", "monumental"] },
     ],
     rows: [
-      { id: "reliefs-filmables", label: "Reliefs filmables", tags: ["cinema", "spectaculaire"] },
+      { id: "reliefs-filmables", label: "Reliefs filmables", tags: ["cinema", "spectaculaire", "montagne"] },
       { id: "industrie-relief", label: "Industrie de relief", tags: ["industriel", "ouvrier", "spectaculaire"] },
       { id: "ciels-mineraux", label: "Ciels minéraux", tags: ["crepusculaire", "mineral", "industriel"] },
     ],
@@ -523,18 +523,52 @@ export const grids = [
       { id: "brutaliste", label: "Brutaliste", tags: ["brutaliste", "industriel"] },
     ],
     rows: [
-      { id: "icones-publiques", label: "Icônes publiques", tags: ["iconique", "culture_pop"] },
-      { id: "ciels-crepusculaires", label: "Ciels crépusculaires", tags: ["crepusculaire", "rude", "industriel"] },
+      { id: "icones-publiques", label: "Icônes publiques", tags: ["iconique", "culture_pop", "monumental"] },
+      { id: "ciels-crepusculaires", label: "Ciels crépusculaires", tags: ["crepusculaire", "rude", "industriel", "melancolique"] },
       { id: "reliefs-techniques", label: "Reliefs techniques", tags: ["volcanique", "spectaculaire", "littoral"] },
     ],
   },
 ];
 
-export function getTodayGrid(date = new Date()) {
-  const localDayIndex = Math.floor(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000
+export const GRID_CALENDAR_START_DATE = "2026-06-13";
+
+const DAY_IN_MS = 86400000;
+
+function toUtcDay(value) {
+  if (typeof value === "string") {
+    const [year, month, day] = value.split("-").map(Number);
+    return Date.UTC(year, month - 1, day);
+  }
+
+  return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+export function getGridCalendarState(date = new Date()) {
+  const daysElapsed = Math.floor(
+    (toUtcDay(date) - toUtcDay(GRID_CALENDAR_START_DATE)) / DAY_IN_MS
   );
-  return grids[localDayIndex % grids.length];
+  const currentIndex = Math.max(0, daysElapsed);
+  const isBeforeStart = daysElapsed < 0;
+  const isExhausted = !isBeforeStart && currentIndex >= grids.length;
+  const todayGrid = !isBeforeStart && !isExhausted ? grids[currentIndex] : null;
+  const pastGrids = !isBeforeStart ? grids.slice(0, Math.min(currentIndex, grids.length)) : [];
+  const futureGrids = isBeforeStart ? grids : isExhausted ? [] : grids.slice(currentIndex + 1);
+
+  return {
+    startDate: GRID_CALENDAR_START_DATE,
+    daysElapsed,
+    currentIndex,
+    todayGrid,
+    pastGrids,
+    futureGrids,
+    unlockedGrids: todayGrid ? [...pastGrids, todayGrid] : pastGrids,
+    isBeforeStart,
+    isExhausted,
+  };
+}
+
+export function getTodayGrid(date = new Date()) {
+  return getGridCalendarState(date).todayGrid;
 }
 
 const departmentPlaces = {
@@ -898,3 +932,352 @@ export const departments = baseDepartments.map((department) => ({
   ...department,
   places: departmentPlaces[department.code] ?? [],
 }));
+
+const GRID_STOCK_TARGET = 365;
+
+const generatedCriteria = [
+  { id: "littoral-maritime", label: "Littoral maritime", tags: ["littoral", "maritime"] },
+  { id: "ports-estuaires", label: "Ports et estuaires", tags: ["portuaire", "naval", "littoral"] },
+  { id: "phares-caps", label: "Phares et caps", tags: ["phares", "falaises", "maritime"] },
+  { id: "mediterranee", label: "Sud méditerranéen", tags: ["mediterraneen", "littoral", "spectaculaire"] },
+  { id: "atlantique-rude", label: "Atlantique rude", tags: ["maritime", "rude", "crepusculaire"] },
+  { id: "reliefs-alpins", label: "Reliefs alpins", tags: ["montagne", "spectaculaire", "mineral"] },
+  { id: "volcans-plateaux", label: "Volcans et plateaux", tags: ["volcanique", "mineral", "rural"] },
+  { id: "gorges-falaises", label: "Gorges et falaises", tags: ["falaises", "spectaculaire", "sauvage"] },
+  { id: "montagnes-sauvages", label: "Montagnes sauvages", tags: ["montagne", "sauvage", "rural"] },
+  { id: "patrimoine-medieval", label: "Patrimoine médiéval", tags: ["medieval", "patrimoine", "architecture"] },
+  { id: "monuments-majeurs", label: "Monuments majeurs", tags: ["monumental", "architecture", "patrimoine"] },
+  { id: "villages-pierre", label: "Villages de pierre", tags: ["villages", "patrimoine", "rural"] },
+  { id: "prehistoire-grottes", label: "Préhistoire et grottes", tags: ["prehistoire", "falaises", "patrimoine"] },
+  { id: "cathare-sud", label: "Cathare et Sud sec", tags: ["cathare", "medieval", "spectaculaire"] },
+  { id: "industrie-mines", label: "Mines et industrie", tags: ["minier", "industriel", "ouvrier"] },
+  { id: "memoire-ouvriere", label: "Mémoire ouvrière", tags: ["ouvrier", "memoire", "industriel"] },
+  { id: "brutalisme-urbain", label: "Brutalisme urbain", tags: ["brutaliste", "architecture", "industriel"] },
+  { id: "naval-industriel", label: "Naval industriel", tags: ["naval", "portuaire", "industriel"] },
+  { id: "michelin-manufactures", label: "Manufactures singulières", tags: ["michelin", "industriel", "architecture"] },
+  { id: "memoire-guerre", label: "Mémoire de guerre", tags: ["memoire", "guerre", "rude"] },
+  { id: "frontieres-est", label: "Frontières de l'Est", tags: ["memoire", "guerre", "patrimoine"] },
+  { id: "melancolie-rurale", label: "Mélancolie rurale", tags: ["melancolique", "rural", "underdog"] },
+  { id: "france-discrete", label: "France discrète", tags: ["underdog", "rural", "patrimoine"] },
+  { id: "bocage-bastides", label: "Bocage et bastides", tags: ["rural", "villages", "medieval"] },
+  { id: "campagnes-sauvages", label: "Campagnes sauvages", tags: ["rural", "sauvage", "melancolique"] },
+  { id: "cinema-iconique", label: "Cinéma iconique", tags: ["cinema", "iconique", "culture_pop"] },
+  { id: "decors-filmables", label: "Décors filmables", tags: ["cinema", "spectaculaire", "architecture"] },
+  { id: "culture-pop-urbaine", label: "Culture pop urbaine", tags: ["culture_pop", "architecture", "monumental"] },
+  { id: "capitales-symboles", label: "Capitales et symboles", tags: ["iconique", "monumental", "culture_pop"] },
+  { id: "ciels-crepusculaires", label: "Ciels crépusculaires", tags: ["crepusculaire", "melancolique", "rude"] },
+  { id: "paysages-sauvages", label: "Paysages sauvages", tags: ["sauvage", "spectaculaire", "rural"] },
+  { id: "patrimoine-rare", label: "Patrimoine rare", tags: ["patrimoine", "underdog", "villages"] },
+  { id: "architecture-noire", label: "Architecture sombre", tags: ["architecture", "mineral", "brutaliste"] },
+  { id: "bretagne-celte", label: "Bretagne celte", tags: ["culture_celte", "maritime", "sauvage"] },
+  { id: "normandie-memoire", label: "Normandie de mémoire", tags: ["memoire", "maritime", "architecture"] },
+  { id: "loire-chateaux", label: "Loire et châteaux", tags: ["patrimoine", "monumental", "rural"] },
+  { id: "sud-villages", label: "Villages du Sud", tags: ["mediterraneen", "villages", "patrimoine"] },
+  { id: "jura-vosges", label: "Moyenne montagne", tags: ["montagne", "rural", "melancolique"] },
+  { id: "outremer-volcanique", label: "Outre-mer volcanique", tags: ["volcanique", "littoral", "sauvage"] },
+  { id: "iles-lagons", label: "Îles et lagons", tags: ["littoral", "maritime", "sauvage"] },
+  { id: "forets-memoire", label: "Forêts de mémoire", tags: ["sauvage", "memoire", "rural"] },
+  { id: "villes-reconstruites", label: "Villes reconstruites", tags: ["architecture", "memoire", "guerre"] },
+  { id: "ports-populaires", label: "Ports populaires", tags: ["portuaire", "culture_pop", "littoral"] },
+  { id: "relief-littoral", label: "Relief littoral", tags: ["littoral", "falaises", "spectaculaire"] },
+  { id: "ruralite-industrielle", label: "Ruralité industrielle", tags: ["rural", "industriel", "melancolique"] },
+  { id: "memoire-discrete", label: "Mémoire discrète", tags: ["memoire", "underdog", "patrimoine"] },
+];
+
+const generatedCategoryCriteria = [
+  { id: "geo-caps-frontieres", category: "geographie", label: "Caps et frontières", tags: ["littoral", "memoire", "spectaculaire"] },
+  { id: "geo-vallees-reliefs", category: "geographie", label: "Vallées et reliefs", tags: ["montagne", "rural", "spectaculaire"] },
+  { id: "geo-facades-maritimes", category: "geographie", label: "Façades maritimes", tags: ["maritime", "portuaire", "littoral"] },
+  { id: "geo-axes-interieurs", category: "geographie", label: "Axes intérieurs", tags: ["rural", "architecture", "patrimoine"] },
+  { id: "geo-archipels-lointains", category: "geographie", label: "Archipels lointains", tags: ["littoral", "volcanique", "sauvage"] },
+  { id: "geo-paysages-secs", category: "geographie", label: "Paysages secs", tags: ["mediterraneen", "rural", "spectaculaire"] },
+  { id: "histoire-fronts", category: "histoire", label: "Anciens fronts", tags: ["guerre", "memoire", "rude"] },
+  { id: "histoire-abbayes", category: "histoire", label: "Abbayes et fondations", tags: ["patrimoine", "medieval", "rural"] },
+  { id: "histoire-routes-royales", category: "histoire", label: "Routes royales", tags: ["monumental", "patrimoine", "architecture"] },
+  { id: "histoire-places-fortes", category: "histoire", label: "Places fortes", tags: ["guerre", "architecture", "medieval"] },
+  { id: "histoire-memoires-locales", category: "histoire", label: "Mémoires locales", tags: ["memoire", "patrimoine", "underdog"] },
+  { id: "histoire-industrie-ancienne", category: "histoire", label: "Industrie ancienne", tags: ["industriel", "ouvrier", "memoire"] },
+  { id: "patrimoine-cathedrales", category: "patrimoine", label: "Cathédrales et silhouettes", tags: ["monumental", "architecture", "patrimoine"] },
+  { id: "patrimoine-bastides", category: "patrimoine", label: "Bastides et villages", tags: ["villages", "medieval", "rural"] },
+  { id: "patrimoine-chateaux", category: "patrimoine", label: "Châteaux et vallées", tags: ["patrimoine", "medieval", "spectaculaire"] },
+  { id: "patrimoine-thermal", category: "patrimoine", label: "Patrimoine thermal", tags: ["architecture", "patrimoine", "melancolique"] },
+  { id: "patrimoine-pierre-noire", category: "patrimoine", label: "Pierre noire", tags: ["mineral", "architecture", "volcanique"] },
+  { id: "patrimoine-rural-cache", category: "patrimoine", label: "Patrimoine rural caché", tags: ["rural", "underdog", "patrimoine"] },
+  { id: "culture-cinema-mer", category: "culture", label: "Cinéma et mer", tags: ["cinema", "littoral", "iconique"] },
+  { id: "culture-scenes-urbaines", category: "culture", label: "Scènes urbaines", tags: ["culture_pop", "architecture", "brutaliste"] },
+  { id: "culture-legendes-celtes", category: "culture", label: "Légendes celtes", tags: ["culture_celte", "maritime", "melancolique"] },
+  { id: "culture-festive-sud", category: "culture", label: "Cultures du Sud", tags: ["mediterraneen", "culture_pop", "villages"] },
+  { id: "culture-images-nationales", category: "culture", label: "Images nationales", tags: ["iconique", "monumental", "cinema"] },
+  { id: "culture-decors-auteur", category: "culture", label: "Décors d'auteur", tags: ["cinema", "melancolique", "patrimoine"] },
+  { id: "gastronomie-vignobles", category: "gastronomie", label: "Vignobles et tables", tags: ["rural", "patrimoine", "villages"] },
+  { id: "gastronomie-fromages-massifs", category: "gastronomie", label: "Fromages de massifs", tags: ["montagne", "rural", "patrimoine"] },
+  { id: "gastronomie-marches-littoraux", category: "gastronomie", label: "Marchés littoraux", tags: ["littoral", "portuaire", "rural"] },
+  { id: "gastronomie-terroirs-discrets", category: "gastronomie", label: "Terroirs discrets", tags: ["underdog", "rural", "melancolique"] },
+  { id: "gastronomie-sud-mediterraneen", category: "gastronomie", label: "Tables méditerranéennes", tags: ["mediterraneen", "villages", "littoral"] },
+  { id: "gastronomie-forets-etangs", category: "gastronomie", label: "Forêts et étangs", tags: ["rural", "sauvage", "patrimoine"] },
+  { id: "demographie-metropoles", category: "demographie", label: "Métropoles denses", tags: ["monumental", "culture_pop", "architecture"] },
+  { id: "demographie-banlieues", category: "demographie", label: "Banlieues et villes nouvelles", tags: ["brutaliste", "culture_pop", "industriel"] },
+  { id: "demographie-departements-peu-denses", category: "demographie", label: "Départements peu denses", tags: ["underdog", "rural", "sauvage"] },
+  { id: "demographie-villes-moyennes", category: "demographie", label: "Villes moyennes", tags: ["architecture", "industriel", "patrimoine"] },
+  { id: "demographie-outremer", category: "demographie", label: "Densités ultramarines", tags: ["littoral", "maritime", "rural"] },
+  { id: "demographie-campagnes-agees", category: "demographie", label: "Campagnes lentes", tags: ["rural", "melancolique", "memoire"] },
+  { id: "economie-ports", category: "economie", label: "Ports économiques", tags: ["portuaire", "naval", "industriel"] },
+  { id: "economie-mines", category: "economie", label: "Mines et bassins", tags: ["minier", "ouvrier", "industriel"] },
+  { id: "economie-manufactures", category: "economie", label: "Manufactures et savoir-faire", tags: ["industriel", "architecture", "patrimoine"] },
+  { id: "economie-tourisme-alpin", category: "economie", label: "Tourisme alpin", tags: ["montagne", "spectaculaire", "architecture"] },
+  { id: "economie-agricole", category: "economie", label: "Économies agricoles", tags: ["rural", "villages", "underdog"] },
+  { id: "economie-grandes-marques", category: "economie", label: "Grandes marques locales", tags: ["michelin", "industriel", "culture_pop"] },
+  { id: "nature-forets", category: "nature", label: "Forêts et plateaux", tags: ["sauvage", "rural", "melancolique"] },
+  { id: "nature-volcans", category: "nature", label: "Volcans et minéral", tags: ["volcanique", "mineral", "spectaculaire"] },
+  { id: "nature-gorges", category: "nature", label: "Gorges et rivières", tags: ["falaises", "sauvage", "spectaculaire"] },
+  { id: "nature-caps-vents", category: "nature", label: "Caps et vents", tags: ["phares", "maritime", "crepusculaire"] },
+  { id: "nature-montagnes", category: "nature", label: "Hautes montagnes", tags: ["montagne", "mineral", "sauvage"] },
+  { id: "nature-lagons-forets", category: "nature", label: "Lagons et forêts", tags: ["littoral", "sauvage", "volcanique"] },
+  { id: "tourisme-balneaire", category: "tourisme", label: "Tourisme balnéaire", tags: ["littoral", "mediterraneen", "iconique"] },
+  { id: "tourisme-chateaux", category: "tourisme", label: "Tourisme de châteaux", tags: ["monumental", "patrimoine", "rural"] },
+  { id: "tourisme-memoire", category: "tourisme", label: "Tourisme de mémoire", tags: ["memoire", "guerre", "patrimoine"] },
+  { id: "tourisme-grottes", category: "tourisme", label: "Grottes et préhistoire", tags: ["prehistoire", "falaises", "spectaculaire"] },
+  { id: "tourisme-villages", category: "tourisme", label: "Villages visités", tags: ["villages", "medieval", "patrimoine"] },
+  { id: "tourisme-stations", category: "tourisme", label: "Stations et panoramas", tags: ["montagne", "littoral", "spectaculaire"] },
+  { id: "insolite-petits-departements", category: "insolite", label: "Petits départements", tags: ["underdog", "architecture", "patrimoine"] },
+  { id: "insolite-contrastes", category: "insolite", label: "Contrastes inattendus", tags: ["rural", "brutaliste", "melancolique"] },
+  { id: "insolite-frontieres", category: "insolite", label: "Frontières étranges", tags: ["memoire", "underdog", "guerre"] },
+  { id: "insolite-paysages-inattendus", category: "insolite", label: "Paysages inattendus", tags: ["sauvage", "littoral", "underdog"] },
+  { id: "insolite-industrie-cachee", category: "insolite", label: "Industrie cachée", tags: ["industriel", "rural", "patrimoine"] },
+  { id: "insolite-icones-decalees", category: "insolite", label: "Icônes décalées", tags: ["iconique", "underdog", "culture_pop"] },
+];
+
+function inferGeneratedCategory(criterion) {
+  const tags = criterion.tags;
+  if (tags.some((tag) => ["littoral", "maritime", "montagne", "volcanique", "falaises"].includes(tag))) return "geographie";
+  if (tags.some((tag) => ["guerre", "memoire", "medieval", "prehistoire"].includes(tag))) return "histoire";
+  if (tags.some((tag) => ["patrimoine", "architecture", "monumental", "villages"].includes(tag))) return "patrimoine";
+  if (tags.some((tag) => ["cinema", "culture_pop", "iconique", "culture_celte"].includes(tag))) return "culture";
+  if (tags.some((tag) => ["industriel", "minier", "ouvrier", "naval", "portuaire", "michelin"].includes(tag))) return "economie";
+  if (tags.some((tag) => ["sauvage", "rural", "mineral", "crepusculaire"].includes(tag))) return "nature";
+  return "insolite";
+}
+
+const generatedCriteriaPool = [
+  ...generatedCriteria.map((criterion) => ({
+    ...criterion,
+    category: inferGeneratedCategory(criterion),
+  })),
+  ...generatedCategoryCriteria,
+];
+
+const generatedTitleFamilies = [
+  "Grille horizons croisés",
+  "Grille lignes de force",
+  "Grille territoires en tension",
+  "Grille chemins secondaires",
+  "Grille paysages et traces",
+  "Grille mémoires obliques",
+  "Grille contrastes français",
+  "Grille diagonales",
+  "Grille cartes sensibles",
+  "Grille repères cachés",
+];
+
+function generatedCriterionKey(criterion) {
+  return criterion.tags.slice().sort().join("+");
+}
+
+function generatedPairKey(row, column) {
+  return `${generatedCriterionKey(row)}__${generatedCriterionKey(column)}`;
+}
+
+function generatedTagMatches(department, criterion) {
+  return criterion.tags.filter((tag) => department.tags.includes(tag)).length;
+}
+
+const generatedCellCandidateCache = new Map();
+
+function generatedCellCandidates(row, column) {
+  const key = generatedPairKey(row, column);
+  const cached = generatedCellCandidateCache.get(key);
+  if (cached) return cached;
+
+  const candidates = departments.filter((department) => (
+    generatedTagMatches(department, row) > 0
+    && generatedTagMatches(department, column) > 0
+  ));
+
+  generatedCellCandidateCache.set(key, candidates);
+  return candidates;
+}
+
+function generatedGridPairKeys(grid) {
+  return grid.rows.flatMap((row) => (
+    grid.columns.map((column) => generatedPairKey(row, column))
+  ));
+}
+
+function hasUniqueCriteria(criteria) {
+  return new Set(criteria.map((criterion) => criterion.id)).size === criteria.length;
+}
+
+function generatedGridQuality(rows, columns, usedPairKeys, departmentExposure) {
+  const pairs = [];
+  let quality = 0;
+
+  for (const row of rows) {
+    for (const column of columns) {
+      const pair = generatedPairKey(row, column);
+      if (usedPairKeys.has(pair) || pairs.includes(pair)) return null;
+
+      const candidates = generatedCellCandidates(row, column);
+      if (candidates.length === 0) return null;
+
+      const leastExposed = candidates.reduce((best, department) => {
+        const exposure = departmentExposure.get(department.code) ?? 0;
+        if (!best || exposure < best.exposure || (exposure === best.exposure && department.prestige > best.department.prestige)) {
+          return { department, exposure };
+        }
+        return best;
+      }, null);
+
+      quality += Math.max(0, 40 - leastExposed.exposure);
+      quality += Math.min(12, candidates.length);
+      quality += candidates.some((department) => department.prestige >= 8) ? 6 : 0;
+      pairs.push(pair);
+    }
+  }
+
+  return { pairs, quality };
+}
+
+function pickGeneratedCriteria(seed, slotCount, step) {
+  const selected = [];
+  let cursor = seed;
+
+  while (selected.length < slotCount && cursor < seed + generatedCriteriaPool.length * 2) {
+    const criterion = generatedCriteriaPool[((cursor % generatedCriteriaPool.length) + generatedCriteriaPool.length) % generatedCriteriaPool.length];
+    if (!selected.some((item) => item.id === criterion.id)) {
+      selected.push(criterion);
+    }
+    cursor += step;
+  }
+
+  return selected;
+}
+
+function pickGeneratedColumnsForRows(rows, seed, step, usedPairKeys) {
+  const selected = [];
+  let cursor = seed;
+
+  while (selected.length < 3 && cursor < seed + generatedCriteriaPool.length * 3) {
+    const criterion = generatedCriteriaPool[((cursor % generatedCriteriaPool.length) + generatedCriteriaPool.length) % generatedCriteriaPool.length];
+    const isRowCriterion = rows.some((row) => row.id === criterion.id);
+    const isAlreadySelected = selected.some((item) => item.id === criterion.id);
+    const keepsPairsFresh = rows.every((row) => !usedPairKeys.has(generatedPairKey(row, criterion)));
+
+    if (!isRowCriterion && !isAlreadySelected && keepsPairsFresh) {
+      selected.push(criterion);
+    }
+
+    cursor += step;
+  }
+
+  return selected;
+}
+
+function createGeneratedGrid(gridNumber, rows, columns) {
+  const title = generatedTitleFamilies[gridNumber % generatedTitleFamilies.length];
+  const difficulty = gridNumber >= 150 ? "expert" : gridNumber >= 90 ? "normal" : "easy";
+
+  return {
+    id: String(gridNumber).padStart(3, "0"),
+    difficulty,
+    title,
+    dateLabel: `Édition longue série ${String(gridNumber).padStart(3, "0")}`,
+    columns: columns.map((criterion) => ({
+      id: criterion.id,
+      label: criterion.label,
+      tags: criterion.tags,
+      category: criterion.category,
+    })),
+    rows: rows.map((criterion) => ({
+      id: criterion.id,
+      label: criterion.label,
+      tags: criterion.tags,
+      category: criterion.category,
+    })),
+  };
+}
+
+function seedGeneratedExposure() {
+  const exposure = new Map(departments.map((department) => [department.code, 0]));
+
+  editorialGrids.forEach((grid) => {
+    grid.rows.forEach((row) => {
+      grid.columns.forEach((column) => {
+        generatedCellCandidates(row, column).forEach((department) => {
+          exposure.set(department.code, (exposure.get(department.code) ?? 0) + 1);
+        });
+      });
+    });
+  });
+
+  return exposure;
+}
+
+function createGeneratedGrids() {
+  const generated = [];
+  const usedPairKeys = new Set(editorialGrids.flatMap(generatedGridPairKeys));
+  const departmentExposure = seedGeneratedExposure();
+
+  for (let gridNumber = editorialGrids.length + 1; gridNumber <= GRID_STOCK_TARGET; gridNumber += 1) {
+    let best = null;
+
+    for (let attempt = 0; attempt < 1200; attempt += 1) {
+      const rows = pickGeneratedCriteria(
+        gridNumber * 5 + attempt * 7,
+        3,
+        5 + ((attempt + gridNumber) % 19)
+      );
+      const columns = pickGeneratedColumnsForRows(
+        rows,
+        gridNumber * 13 + attempt * 17 + 3,
+        7 + ((attempt * 2 + gridNumber) % 23),
+        usedPairKeys
+      );
+      const allCriteria = [...rows, ...columns];
+
+      if (rows.length !== 3 || columns.length !== 3 || !hasUniqueCriteria(allCriteria)) continue;
+
+      const result = generatedGridQuality(rows, columns, usedPairKeys, departmentExposure);
+      if (!result) continue;
+
+      if (!best || result.quality > best.result.quality) {
+        best = { rows, columns, result };
+      }
+    }
+
+    if (!best) break;
+
+    best.result.pairs.forEach((pair) => usedPairKeys.add(pair));
+    best.rows.forEach((row) => {
+      best.columns.forEach((column) => {
+        const candidates = generatedCellCandidates(row, column)
+          .sort((a, b) => (
+            (departmentExposure.get(a.code) ?? 0) - (departmentExposure.get(b.code) ?? 0)
+            || b.prestige - a.prestige
+            || a.code.localeCompare(b.code)
+          ));
+
+        candidates.slice(0, 4).forEach((department) => {
+          departmentExposure.set(department.code, (departmentExposure.get(department.code) ?? 0) + 1);
+        });
+      });
+    });
+
+    generated.push(createGeneratedGrid(gridNumber, best.rows, best.columns));
+  }
+
+  return generated;
+}
+
+const generatedGrids = createGeneratedGrids();
+
+export const grids = [...editorialGrids, ...generatedGrids];

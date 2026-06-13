@@ -3,7 +3,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Archive, BarChart3, HelpCircle, Home, Info, RotateCcw, Share2, X } from "lucide-react";
 import { getAnalyticsDebugState, initAnalytics, trackGevocroiseeEvent } from "./analytics.js";
-import { departments, getTodayGrid, grids } from "./gameData";
+import {
+  getLocalTesterAnalyticsDebugState,
+  initLocalTesterAnalytics,
+  recordLocalTesterAction,
+  recordLocalTesterGameAbandoned,
+  recordLocalTesterGameCompleted,
+  recordLocalTesterGameStarted,
+  recordLocalTesterRulesOpened,
+} from "./debugLocalAnalytics.js";
+import { consumeDailyReset, getDailyResetLimitState } from "./dailyResetLimit.js";
+import { departments, getGridCalendarState } from "./gameData";
 import { cellKey, findMasterMove, rank, scoreCell, scoreGrid } from "./scoring";
 import {
   getContextualAnecdote,
@@ -156,7 +166,7 @@ function getEditionEventData(grid, todayGrid) {
     edition: grid.id,
     editionId: grid.id,
     difficulty: grid.difficulty ?? "normal",
-    source: grid.id === todayGrid.id ? "today" : "archive",
+    source: grid.id === todayGrid?.id ? "today" : "archive",
   };
 }
 
@@ -555,7 +565,7 @@ function DepartmentAbout({ placement, onClose }) {
         </section>
 
         <section className="about-section">
-          <p className="result-kicker">Pourquoi ce choix marque</p>
+          <p className="result-kicker">Pourquoi ça fonctionne</p>
           <p className="crossing-line">{row.label} × {col.label}</p>
           <div className="score-reasons">
             <div>
@@ -567,7 +577,7 @@ function DepartmentAbout({ placement, onClose }) {
               <strong>{colTags.length ? colTags.map(formatTag).join(", ") : "aucun tag direct"}</strong>
             </div>
             <div>
-              <span>Ce qui a compté</span>
+              <span>Ce qui rapproche les deux indices</span>
               <strong>{activatedTags.length ? activatedTags.map(formatTag).join(", ") : "aucun tag direct"}</strong>
             </div>
             {dep.prestige >= 8 && (
@@ -580,7 +590,7 @@ function DepartmentAbout({ placement, onClose }) {
         </section>
 
         <section className="about-section muted-section tags-section">
-          <p className="result-kicker">Caractéristiques du département</p>
+          <p className="result-kicker">Repères du département</p>
           <div className="tag-list subtle">
             {dep.tags.map((tag) => (
               <span className="tag-pill" key={tag}>{formatTag(tag)}</span>
@@ -593,7 +603,8 @@ function DepartmentAbout({ placement, onClose }) {
 }
 
 function App() {
-  const todayGrid = useMemo(() => getTodayGrid(), []);
+  const calendarState = useMemo(() => getGridCalendarState(), []);
+  const { todayGrid, pastGrids, unlockedGrids, isExhausted, startDate } = calendarState;
   const [grid, setGrid] = useState(todayGrid);
   const [screen, setScreen] = useState("home");
   const [selectedCell, setSelectedCell] = useState(null);
@@ -608,17 +619,18 @@ function App() {
   const [discoveryStats, setDiscoveryStats] = useState(getDiscoveryStats);
   const [collectionStats, setCollectionStats] = useState(getCollectionsStats);
 
-  const editionLabel = `GévoCroisée #${grid.id}`;
-  const todayResult = dailyResults[todayGrid.id];
-  const isCurrentDailyEdition = grid.id === todayGrid.id;
+  const editionLabel = grid ? `GévoCroisée #${grid.id}` : "GévoCroisée";
+  const todayResult = todayGrid ? dailyResults[todayGrid.id] : null;
+  const isCurrentDailyEdition = Boolean(todayGrid && grid?.id === todayGrid.id);
   const currentDailyResult = isCurrentDailyEdition ? dailyResults[grid.id] : null;
   const hasPlayedCurrentDailyEdition = Boolean(currentDailyResult);
+  const isDailyResetLimited = Boolean(isCurrentDailyEdition && !hasPlayedCurrentDailyEdition);
   const placedDepartments = useMemo(() => (
     Object.entries(answers).map(([key, depName]) => {
       const [rowId, colId] = key.split("__");
       const dep = departments.find((d) => d.name === depName);
-      const row = grid.rows.find((item) => item.id === rowId);
-      const col = grid.columns.find((item) => item.id === colId);
+      const row = grid?.rows.find((item) => item.id === rowId);
+      const col = grid?.columns.find((item) => item.id === colId);
       if (!dep || !row || !col) return null;
 
       return {
@@ -631,21 +643,44 @@ function App() {
     }).filter(Boolean)
   ), [answers, grid]);
   const usedDepartments = placedDepartments.map((placement) => placement.dep.name);
-  const computed = useMemo(() => scoreGrid(answers, departments, grid.rows, grid.columns), [answers, grid]);
-  const bestMove = useMemo(() => findMasterMove(answers, departments, grid.rows, grid.columns), [answers, grid]);
+  const computed = useMemo(() => (
+    grid ? scoreGrid(answers, departments, grid.rows, grid.columns) : { total: 0, cells: 0, underdogBonus: 0, diversityBonus: 0, completionBonus: 0 }
+  ), [answers, grid]);
+  const bestMove = useMemo(() => (
+    grid ? findMasterMove(answers, departments, grid.rows, grid.columns) : null
+  ), [answers, grid]);
   const rankLabel = rank(computed.total);
   const resultComment = getResultComment(computed.total);
+  const dailyResetDisabled = Boolean(isDailyResetLimited && !dailyResetLimitState.canReset);
+  const dailyResetCopy = isDailyResetLimited
+    ? dailyResetLimitState.canReset
+      ? "1 réinitialisation disponible pour protéger le défi quotidien."
+      : "Dernière chance : la grille du jour ne peut être réinitialisée qu’une fois."
+    : null;
   const isDebugPage = window.location.pathname === "/debug" || new URLSearchParams(window.location.search).get("debug") === "true";
   const [analyticsDebugState, setAnalyticsDebugState] = useState(() => getAnalyticsDebugState());
+  const [localTesterDebugState, setLocalTesterDebugState] = useState(() => getLocalTesterAnalyticsDebugState());
+  const [dailyResetLimitState, setDailyResetLimitState] = useState(() => getDailyResetLimitState(todayGrid?.id));
 
   useEffect(() => {
     initAnalytics();
-  }, []);
+    initLocalTesterAnalytics({
+      screen: "home",
+      todayGridId: todayGrid?.id ?? null,
+    });
+  }, [todayGrid?.id]);
+
+  useEffect(() => {
+    setDailyResetLimitState(getDailyResetLimitState(todayGrid?.id));
+  }, [todayGrid?.id]);
 
   useEffect(() => {
     if (!isDebugPage) return undefined;
 
-    const updateDebugState = () => setAnalyticsDebugState(getAnalyticsDebugState());
+    const updateDebugState = () => {
+      setAnalyticsDebugState(getAnalyticsDebugState());
+      setLocalTesterDebugState(getLocalTesterAnalyticsDebugState());
+    };
     updateDebugState();
 
     const intervalId = window.setInterval(updateDebugState, 500);
@@ -653,7 +688,27 @@ function App() {
   }, [isDebugPage]);
 
   useEffect(() => {
-    if (screen !== "result") return;
+    const recordExitDuringGame = () => {
+      if (screen !== "game" || !grid) return;
+      recordLocalTesterGameAbandoned({
+        gridId: grid.id,
+        filledCells: Object.keys(answers).length,
+        reason: "page_exit",
+        screen,
+      });
+    };
+
+    window.addEventListener("pagehide", recordExitDuringGame);
+    window.addEventListener("beforeunload", recordExitDuringGame);
+
+    return () => {
+      window.removeEventListener("pagehide", recordExitDuringGame);
+      window.removeEventListener("beforeunload", recordExitDuringGame);
+    };
+  }, [answers, grid, screen]);
+
+  useEffect(() => {
+    if (screen !== "result" || !grid) return;
 
     const visiblePlacements = placedDepartments.slice(0, 4);
     const additions = {};
@@ -668,10 +723,11 @@ function App() {
     if (Object.keys(additions).length > 0) {
       setResultAnecdotes((prev) => ({ ...prev, ...additions }));
     }
-  }, [screen, grid.id, placedDepartments, resultAnecdotes]);
+  }, [screen, grid?.id, placedDepartments, resultAnecdotes]);
 
   function openRules() {
     setShowRules(true);
+    recordLocalTesterRulesOpened({ screen });
     trackGevocroiseeEvent("rules_opened", { screen });
   }
 
@@ -679,7 +735,7 @@ function App() {
     if (!placement?.dep) return;
 
     const cachedAnecdote = context === "result"
-      ? resultAnecdotes[getAnecdoteCacheKey(grid.id, placement, "result")]
+      ? resultAnecdotes[getAnecdoteCacheKey(grid?.id, placement, "result")]
       : null;
 
     setAboutPlacement({
@@ -696,6 +752,17 @@ function App() {
   }
 
   function goHome() {
+    if (screen === "game" && grid) {
+      recordLocalTesterGameAbandoned({
+        gridId: grid.id,
+        filledCells: Object.keys(answers).length,
+        reason: "left_game_home",
+        screen,
+      });
+    } else {
+      recordLocalTesterAction("home_opened", { screen });
+    }
+
     setGrid(todayGrid);
     setScreen("home");
     setSelectedCell(null);
@@ -706,6 +773,16 @@ function App() {
   }
 
   function showArchives() {
+    if (screen === "game" && grid) {
+      recordLocalTesterGameAbandoned({
+        gridId: grid.id,
+        filledCells: Object.keys(answers).length,
+        reason: "left_game_archives",
+        screen,
+      });
+    }
+    recordLocalTesterAction("archives_opened", { screen });
+
     setScreen("archives");
     setSelectedCell(null);
     setAboutPlacement(null);
@@ -715,6 +792,16 @@ function App() {
   }
 
   function showStats() {
+    if (screen === "game" && grid) {
+      recordLocalTesterGameAbandoned({
+        gridId: grid.id,
+        filledCells: Object.keys(answers).length,
+        reason: "left_game_stats",
+        screen,
+      });
+    }
+    recordLocalTesterAction("stats_opened", { screen });
+
     setScreen("stats");
     setSelectedCell(null);
     setAboutPlacement(null);
@@ -726,6 +813,8 @@ function App() {
   }
 
   function showCompletedDailyResult(nextGrid = todayGrid) {
+    if (!nextGrid) return;
+
     const completed = dailyResults[nextGrid.id];
     if (!completed) return;
 
@@ -740,7 +829,12 @@ function App() {
   }
 
   function startGrid(nextGrid) {
-    const completed = nextGrid.id === todayGrid.id ? dailyResults[nextGrid.id] : null;
+    if (!nextGrid || !unlockedGrids.some((item) => item.id === nextGrid.id)) {
+      goHome();
+      return;
+    }
+
+    const completed = nextGrid.id === todayGrid?.id ? dailyResults[nextGrid.id] : null;
     if (completed) {
       showCompletedDailyResult(nextGrid);
       return;
@@ -753,6 +847,12 @@ function App() {
     setResultAnecdotes({});
     setCellAttemptCounts({});
     trackGevocroiseeEvent("game_started", getEditionEventData(nextGrid, todayGrid));
+    recordLocalTesterGameStarted({
+      gridId: nextGrid.id,
+      editionId: nextGrid.id,
+      difficulty: nextGrid.difficulty ?? "normal",
+      source: nextGrid.id === todayGrid?.id ? "today" : "archive",
+    });
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -760,6 +860,10 @@ function App() {
   function chooseDepartment(name) {
     if (!selectedCell) return;
     const key = selectedCell;
+    recordLocalTesterAction("department_selected", {
+      gridId: grid?.id ?? null,
+      filledCells: Object.keys(answers).length + 1,
+    });
     setAnswers((prev) => ({ ...prev, [key]: name }));
     setCellAttemptCounts((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }));
     setSelectedCell(null);
@@ -768,6 +872,12 @@ function App() {
   }
 
   function reset() {
+    if (isCurrentDailyEdition) {
+      const nextResetState = consumeDailyReset(grid?.id);
+      setDailyResetLimitState(nextResetState);
+      if (!nextResetState.consumed) return;
+    }
+
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
@@ -777,6 +887,15 @@ function App() {
   }
 
   function replayCurrentGrid() {
+    if (grid) {
+      recordLocalTesterGameStarted({
+        gridId: grid.id,
+        editionId: grid.id,
+        difficulty: grid.difficulty ?? "normal",
+        source: "replay",
+      });
+    }
+
     setAnswers({});
     setSelectedCell(null);
     setAboutPlacement(null);
@@ -787,10 +906,23 @@ function App() {
   }
 
   function validateGrid() {
+    if (!grid) return;
+
     if (hasPlayedCurrentDailyEdition) {
       showCompletedDailyResult(grid);
       return;
     }
+
+    const filledCells = Object.keys(answers).length;
+    recordLocalTesterGameCompleted({
+      gridId: grid.id,
+      editionId: grid.id,
+      difficulty: grid.difficulty ?? "normal",
+      filledCells,
+      isFullGrid: filledCells === 9,
+      score: computed.total,
+      scoreTotal: computed.total,
+    });
 
     trackGevocroiseeEvent("game_completed", {
       edition: grid.id,
@@ -834,6 +966,8 @@ function App() {
   }
 
   async function share() {
+    if (!grid) return;
+
     trackGevocroiseeEvent("game_shared", {
       edition: grid.id,
       editionId: grid.id,
@@ -912,6 +1046,67 @@ function App() {
             <p>{analyticsDebugState.detail}</p>
             <p className="debug-note">Logs console actifs uniquement sur cette page debug.</p>
           </section>
+
+          <section className="result-card debug-table-card">
+            <p className="result-kicker">Analytics local testeurs</p>
+            <h2>Comportements observes en local</h2>
+            <p className="debug-note">
+              Ces mesures restent dans le navigateur de test via localStorage. Aucun envoi externe, aucun identifiant personnel.
+            </p>
+            <div className="debug-grid compact">
+              <article className="debug-stat">
+                <span>Sessions</span>
+                <strong>{localTesterDebugState.sessions}</strong>
+              </article>
+              <article className="debug-stat">
+                <span>Premiere action moyenne</span>
+                <strong>{localTesterDebugState.averageFirstActionSeconds ?? "n/a"}s</strong>
+              </article>
+              <article className="debug-stat">
+                <span>Regles ouvertes</span>
+                <strong>{localTesterDebugState.rulesOpened}</strong>
+              </article>
+              <article className="debug-stat">
+                <span>Parties lancees</span>
+                <strong>{localTesterDebugState.gamesStarted}</strong>
+              </article>
+              <article className="debug-stat">
+                <span>Validations</span>
+                <strong>{localTesterDebugState.gamesCompleted}</strong>
+                <small>{localTesterDebugState.completionRate}% des lancements</small>
+              </article>
+              <article className="debug-stat">
+                <span>Grilles completes</span>
+                <strong>{localTesterDebugState.gamesCompletedFull}</strong>
+                <small>{localTesterDebugState.gamesCompletedPartial} partielles</small>
+              </article>
+              <article className="debug-stat">
+                <span>Abandons</span>
+                <strong>{localTesterDebugState.gamesAbandoned}</strong>
+                <small>{localTesterDebugState.abandonmentRate}% des lancements</small>
+              </article>
+              <article className="debug-stat">
+                <span>Evenements</span>
+                <strong>{localTesterDebugState.events}</strong>
+                <small>{localTesterDebugState.storageKey}</small>
+              </article>
+            </div>
+
+            <div className="debug-event-list">
+              <p className="result-kicker">Derniers evenements locaux</p>
+              {localTesterDebugState.recentEvents.length === 0 ? (
+                <p className="debug-note">Aucun evenement local enregistre pour l'instant.</p>
+              ) : (
+                localTesterDebugState.recentEvents.map((event, index) => (
+                  <article className="debug-event" key={`${event.name}-${event.atIso}-${index}`}>
+                    <strong>{event.name}</strong>
+                    <span>{new Date(event.atIso).toLocaleString("fr-FR")}</span>
+                    <code>{JSON.stringify(event.data)}</code>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
         </section>
       </main>
     );
@@ -926,13 +1121,15 @@ function App() {
           </div>
           <div>
             <strong>GévoCroisée</strong>
-            <span>Le jeu des territoires français à la croisée des idées.</span>
+            <span>Chaque jour, une grille autour des départements français.</span>
           </div>
         </button>
         <div className="topbar-actions">
-          <button className="ghost" onClick={showArchives}>
-            <Archive size={16} /> Éditions précédentes
-          </button>
+          {pastGrids.length > 0 && (
+            <button className="ghost" onClick={showArchives}>
+              <Archive size={16} /> Éditions précédentes
+            </button>
+          )}
           <button className="ghost" onClick={showStats}>
             <BarChart3 size={16} /> Statistiques
           </button>
@@ -948,11 +1145,10 @@ function App() {
             <button className="close" onClick={() => setShowRules(false)}><X size={22} /></button>
             <h2>Comment jouer</h2>
             <p>Chaque jour, une grille 3×3 croise plusieurs thèmes liés aux territoires français.</p>
-            <p>Touchez une case, choisissez un département, puis complétez les 9 cases sans utiliser deux fois le même département.</p>
-            <p>Plusieurs réponses peuvent fonctionner pour un même croisement : le but est de trouver les départements les plus pertinents, originaux ou rares.</p>
-            <p>Certaines réponses seront évidentes. D’autres seront plus rares, plus élégantes ou plus inattendues.</p>
-            <p>Le score, sur 101, récompense la cohérence de la grille, les choix rares et les placements bien optimisés.</p>
-            <p><strong>Attention :</strong> utiliser trop tôt un département très polyvalent peut vous coûter cher.</p>
+            <p>Touchez une case, choisissez un département, puis remplissez les 9 cases sans utiliser deux fois le même.</p>
+            <p>Plusieurs réponses peuvent fonctionner : cherchez celles qui sont justes, originales ou rares.</p>
+            <p>Le score, sur 101, récompense une grille cohérente et des choix bien placés.</p>
+            <p><strong>Petit piège :</strong> un département très évident n’est pas toujours le meilleur choix.</p>
             <p className="rules-transition">Le nom du jeu raconte aussi cette manière de jouer.</p>
             <section className="name-explanation" aria-labelledby="name-explanation-title">
               <p className="result-kicker">Nom du jeu</p>
@@ -987,34 +1183,53 @@ function App() {
 
       {screen === "home" && (
         <section className="hero">
-          <div className="edition-row">
-            <p className="edition">GévoCroisée #{todayGrid.id}</p>
-            <DifficultyBadge difficulty={todayGrid.difficulty} />
-          </div>
-          <h1>La France en puzzle.</h1>
-          <p className="hero-subtitle">Chaque jour, croisez vos idées et redécouvrez les départements français.</p>
-          <p>
-            Une grille, neuf cases, et des départements à placer avec justesse.
-            Le plus difficile n’est pas toujours de trouver une bonne réponse,
-            mais de savoir laquelle mérite vraiment sa place.
-          </p>
-          {todayResult && <p className="played-notice">Vous avez déjà joué cette édition.</p>}
-          <button
-            className="primary"
-            onClick={() => todayResult ? showCompletedDailyResult(todayGrid) : startGrid(todayGrid)}
-          >
-            {todayResult ? "Voir mon résultat" : "Jouer la grille du jour"}
-          </button>
+          {todayGrid && (
+            <div className="edition-row">
+              <p className="edition">Grille du jour · GévoCroisée #{todayGrid.id}</p>
+              <DifficultyBadge difficulty={todayGrid.difficulty} />
+            </div>
+          )}
+          {!todayGrid && <p className="edition">Calendrier quotidien</p>}
+          <h1>La grille du jour.</h1>
+          {todayGrid ? (
+            <>
+              <p className="hero-subtitle">Une nouvelle grille chaque jour, les anciennes à rejouer plus tard.</p>
+              <p>
+                Croisez les indices, choisissez les départements qui collent le mieux,
+                puis essayez de composer la grille la plus juste possible.
+              </p>
+              {todayResult && <p className="played-notice">Vous avez déjà joué cette édition.</p>}
+              <button
+                className="primary"
+                onClick={() => todayResult ? showCompletedDailyResult(todayGrid) : startGrid(todayGrid)}
+              >
+                {todayResult ? "Voir mon résultat" : "Jouer la grille du jour"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="hero-subtitle">
+                {isExhausted
+                  ? "La série préparée est terminée. Les anciennes grilles restent disponibles."
+                  : `La première grille sera disponible à partir du ${startDate}.`}
+              </p>
+              {pastGrids.length > 0 && (
+                <button className="primary" onClick={showArchives}>
+                  Voir les archives disponibles
+                </button>
+              )}
+            </>
+          )}
         </section>
       )}
 
       {screen === "archives" && (
         <section className="archives">
           <p className="edition">Archives</p>
-          <h1>Éditions précédentes</h1>
+          <h1>Grilles débloquées</h1>
           <div className="archive-grid">
-            {grids.map((archiveGrid) => {
-              const isToday = archiveGrid.id === todayGrid.id;
+            {pastGrids.map((archiveGrid) => {
+              const isToday = archiveGrid.id === todayGrid?.id;
               const isLockedToday = isToday && Boolean(dailyResults[archiveGrid.id]);
               return (
                 <article className="result-card archive-card" key={archiveGrid.id}>
@@ -1028,12 +1243,15 @@ function App() {
                   <p>{archiveGrid.dateLabel}</p>
                   {isLockedToday && <p className="played-notice compact">Vous avez déjà joué cette édition.</p>}
                   <button className="secondary" onClick={() => startGrid(archiveGrid)}>
-                    {isLockedToday ? "Voir le résultat" : "Rejouer"}
+                    {isLockedToday ? "Voir mon résultat" : "Jouer cette grille"}
                   </button>
                 </article>
               );
             })}
           </div>
+          {pastGrids.length === 0 && (
+            <p>Les grilles déjà débloquées apparaîtront ici à partir de demain.</p>
+          )}
         </section>
       )}
 
@@ -1106,7 +1324,7 @@ function App() {
           <section className="intro">
             <p className="edition">{grid.title}</p>
             <h1>À vous de jouer</h1>
-            <p>Touchez une case, puis choisissez un département.</p>
+            <p>Touchez une case, puis choisissez un département dans la liste.</p>
           </section>
 
           <section className="grid-card">
@@ -1153,8 +1371,11 @@ function App() {
               <p className="played-notice">Vous avez déjà joué cette édition.</p>
             ) : (
               <>
-                <button className="primary" onClick={validateGrid}>Valider ma grille</button>
-                <button className="secondary" onClick={reset}><RotateCcw size={16}/> Réinitialiser</button>
+                <button className="primary" onClick={validateGrid}>Voir mon score</button>
+                <button className="secondary" onClick={reset} disabled={dailyResetDisabled}>
+                  <RotateCcw size={16}/> Réinitialiser
+                </button>
+                {dailyResetCopy && <p className="reset-limit-note">{dailyResetCopy}</p>}
               </>
             )}
           </section>
@@ -1178,7 +1399,7 @@ function App() {
                 );
               })}
             </div>
-            {!selectedCell && <p className="hint">Sélectionnez d’abord une case dans la grille.</p>}
+            {!selectedCell && <p className="hint">Touchez une case de la grille pour choisir un département.</p>}
           </section>
         </>
       )}
@@ -1189,7 +1410,7 @@ function App() {
           <h1>{computed.total}/101</h1>
           {bestMove && (
             <section className="master-move">
-              <p className="result-kicker">Votre coup de maître</p>
+              <p className="result-kicker">Votre meilleur choix</p>
               <div className="master-content">
                 <DepartmentThumbnail dep={bestMove.dep} className="master-code" />
                 <div>
@@ -1206,7 +1427,7 @@ function App() {
                       cell: bestMove.cell,
                     }, "master_move")}
                   >
-                    <Info size={15} /> À propos du département
+                    <Info size={15} /> Voir la fiche
                   </button>
                 </div>
               </div>
@@ -1221,7 +1442,7 @@ function App() {
           </div>
 
           <section className="result-card long">
-            <p className="result-kicker">Votre lecture de la grille</p>
+            <p className="result-kicker">Bilan de votre grille</p>
             <h2>{resultComment.title}</h2>
             <p>{resultComment.paragraph}</p>
           </section>
@@ -1241,7 +1462,7 @@ function App() {
                     <h3>{dep.name}</h3>
                     <p className="story-crossing">{row.label} × {col.label} · {cell.score}/9</p>
                     <PlaceSpotlight place={featuredPlace} code={dep.code} compact />
-                    <p className="stat">{pct}% des joueurs pourraient tenter ce département ici.</p>
+                    <p className="stat">{pct}% des joueurs pourraient tenter ce choix ici.</p>
                     <DiscoverySignals
                       displayAnecdote={displayAnecdote}
                       communityInsight={communityInsight}
@@ -1249,7 +1470,7 @@ function App() {
                     {!displayAnecdote.isFallback && <p><strong>{displayAnecdote.title}</strong></p>}
                     <p>{displayAnecdote.content}</p>
                     <button className="text-button" onClick={() => openDepartmentAbout(placement, "result")}>
-                      <Info size={15} /> À propos du département
+                      <Info size={15} /> Voir la fiche
                     </button>
                   </div>
                 </article>

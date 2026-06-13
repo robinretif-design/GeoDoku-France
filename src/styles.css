@@ -175,6 +175,17 @@ cursor: pointer;
 .actions { display: flex; gap: 12px; margin: 18px 0 26px; flex-wrap: wrap; }
 .actions .primary { flex: 1 1 260px; }
 .actions .secondary { justify-content: center; flex: 1 1 160px; }
+.actions .secondary:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.reset-limit-note {
+  flex: 1 1 100%;
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
 .played-notice {
   display: inline-flex;
   align-items: center;
@@ -715,6 +726,37 @@ cursor: pointer;
 .debug-table-card {
   margin-top: 12px;
 }
+.debug-grid.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.debug-grid.compact .debug-stat {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
+.debug-event-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.debug-event {
+  display: grid;
+  grid-template-columns: 180px 180px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.debug-event span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.debug-event code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
 .stories { display: grid; gap: 12px; margin-top: 16px; }
 .story { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 14px; align-items: start; width: 100%; }
 .story > div:last-child { min-width: 0; }
@@ -1095,6 +1137,14 @@ cursor: pointer;
   .score-reasons {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .debug-grid.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .debug-event {
+    grid-template-columns: 1fr;
   }
 
   .department-about-code {
