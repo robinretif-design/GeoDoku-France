@@ -651,16 +651,16 @@ function App() {
   ), [answers, grid]);
   const rankLabel = rank(computed.total);
   const resultComment = getResultComment(computed.total);
+  const isDebugPage = window.location.pathname === "/debug" || new URLSearchParams(window.location.search).get("debug") === "true";
+  const [analyticsDebugState, setAnalyticsDebugState] = useState(() => getAnalyticsDebugState());
+  const [localTesterDebugState, setLocalTesterDebugState] = useState(() => getLocalTesterAnalyticsDebugState());
+  const [dailyResetLimitState, setDailyResetLimitState] = useState(() => getDailyResetLimitState(todayGrid?.id));
   const dailyResetDisabled = Boolean(isDailyResetLimited && !dailyResetLimitState.canReset);
   const dailyResetCopy = isDailyResetLimited
     ? dailyResetLimitState.canReset
       ? "1 réinitialisation disponible pour protéger le défi quotidien."
       : "Dernière chance : la grille du jour ne peut être réinitialisée qu’une fois."
     : null;
-  const isDebugPage = window.location.pathname === "/debug" || new URLSearchParams(window.location.search).get("debug") === "true";
-  const [analyticsDebugState, setAnalyticsDebugState] = useState(() => getAnalyticsDebugState());
-  const [localTesterDebugState, setLocalTesterDebugState] = useState(() => getLocalTesterAnalyticsDebugState());
-  const [dailyResetLimitState, setDailyResetLimitState] = useState(() => getDailyResetLimitState(todayGrid?.id));
 
   useEffect(() => {
     initAnalytics();
