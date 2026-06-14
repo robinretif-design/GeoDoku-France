@@ -1,7 +1,7 @@
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Archive, BarChart3, HelpCircle, Home, Info, RotateCcw, Share2, X } from "lucide-react";
+import { Archive, BarChart3, BookOpen, ChevronLeft, HelpCircle, Home, Info, Lock, RotateCcw, Share2, X } from "lucide-react";
 import { initAnalytics, trackGevocroiseeEvent } from "./analytics.js";
 import {
   initLocalTesterAnalytics,
@@ -61,13 +61,7 @@ let anecdoteServicesPromise = null;
 
 function loadAnecdoteServices() {
   if (!anecdoteServicesPromise) {
-    anecdoteServicesPromise = Promise.all([
-      import("./services/anecdotesService.js"),
-      import("./services/collectionsService.js"),
-    ]).then(([anecdotesService, collectionsService]) => ({
-      ...anecdotesService,
-      ...collectionsService,
-    }));
+    anecdoteServicesPromise = import("./services/publicAnecdotesService.js");
   }
 
   return anecdoteServicesPromise;
@@ -444,38 +438,27 @@ async function loadCollectionStats() {
   return getCollectionsStats();
 }
 
+async function loadCollectionDetails(collectionKey) {
+  const { getCollectionDetails } = await loadAnecdoteServices();
+  return getCollectionDetails(collectionKey);
+}
+
 async function selectDepartmentAnecdote(placement, displayContext = "result") {
   const dep = placement?.dep;
   if (!dep) return null;
 
   try {
     const {
-      getContextualAnecdote,
-      getNeverSeenAnecdoteForDepartment,
-      getRareAnecdote,
-      getSeenAnecdoteIds,
       isAnecdoteValidated,
       recordAnecdoteDisplay,
       recordCollectionDiscovery,
+      selectDepartmentAnecdoteRecord,
     } = await loadAnecdoteServices();
     const editorialContext = getAnecdoteContext(placement, displayContext);
-    const seenIds = getSeenAnecdoteIds();
-    let selected = null;
-
-    if (displayContext === "master_move") {
-      const rare = getRareAnecdote(dep.code, { recordDisplay: false });
-      if (rare && !seenIds.includes(rare.id)) {
-        selected = rare;
-      }
-    }
-
-    if (!selected) {
-      selected = getContextualAnecdote(dep.code, editorialContext, { recordDisplay: false });
-    }
-
-    if (!selected) {
-      selected = getNeverSeenAnecdoteForDepartment(dep.code, { recordDisplay: false });
-    }
+    const selected = await selectDepartmentAnecdoteRecord(dep.code, {
+      context: editorialContext,
+      displayContext,
+    });
 
     if (selected && isAnecdoteValidated(selected)) {
       recordAnecdoteDisplay(selected.id, selected);
@@ -484,7 +467,7 @@ async function selectDepartmentAnecdote(placement, displayContext = "result") {
         departmentName: dep.name,
         context: displayContext,
       });
-      const collectionResult = recordCollectionDiscovery(selected, {
+      const collectionResult = await recordCollectionDiscovery(selected, {
         departmentCode: dep.code,
         departmentName: dep.name,
         context: displayContext,
@@ -565,7 +548,9 @@ function DepartmentAbout({ placement, onClose }) {
   return (
     <div className="overlay" onClick={onClose}>
       <section className="modal department-about" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        <button className="close" onClick={onClose}><X size={22} /></button>
+        <button className="close" onClick={onClose} aria-label="Fermer la fiche">
+          <X size={22} />
+        </button>
 
         {featuredPlace && (
           <section className="place-hero">
@@ -652,6 +637,154 @@ function DepartmentAbout({ placement, onClose }) {
             ))}
           </div>
         </section>
+        <footer className="modal-actions">
+          <button className="secondary" onClick={onClose}>Fermer</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function getDepartmentByCode(code) {
+  const normalizedCode = String(code ?? "").trim().toUpperCase();
+  return departments.find((department) => department.code === normalizedCode) ?? null;
+}
+
+function formatDiscoveryDate(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function getUnlockedAnecdoteTitle(item) {
+  return item?.anecdote?.titre ?? item?.themeLabel ?? "Anecdote débloquée";
+}
+
+function getUnlockedAnecdoteMeta(item) {
+  const department = getDepartmentByCode(item?.codeDepartement);
+  const date = formatDiscoveryDate(item?.discoveredAt);
+
+  return [
+    department?.name ?? item?.codeDepartement,
+    item?.anecdote?.rarete ?? item?.rarete,
+    date,
+  ].filter(Boolean).join(" · ");
+}
+
+function CollectionDetailView({ detail, loading, onBack, onOpenAnecdote }) {
+  if (loading && !detail) {
+    return (
+      <section className="collection-detail-view" aria-live="polite">
+        <p className="loading-note">Chargement de la collection...</p>
+      </section>
+    );
+  }
+
+  if (!detail) return null;
+
+  const unlockedAnecdotes = detail.unlockedAnecdotes ?? [];
+  const totalAvailable = detail.totalAvailable || detail.discoveredCount;
+  const lockedCount = Math.max(0, detail.lockedCount ?? totalAvailable - unlockedAnecdotes.length);
+
+  return (
+    <section className="collection-detail-view" aria-live="polite">
+      <button className="text-button collection-back-button" onClick={onBack}>
+        <ChevronLeft size={16} /> Collections
+      </button>
+      <div className="collection-detail-heading">
+        <div>
+          <p className="result-kicker">Collection</p>
+          <h2>{detail.collectionLabel}</h2>
+          {detail.collectionDescription && <p>{detail.collectionDescription}</p>}
+        </div>
+        <div className="collection-detail-progress">
+          <strong>{detail.discoveredCount}/{totalAvailable}</strong>
+          <span>progression</span>
+        </div>
+      </div>
+
+      {unlockedAnecdotes.length > 0 ? (
+        <div className="collection-anecdote-list">
+          {unlockedAnecdotes.map((item) => {
+            const isReadable = Boolean(item.anecdote);
+            return (
+              <button
+                className="collection-anecdote-item"
+                key={item.anecdoteId}
+                onClick={() => isReadable && onOpenAnecdote(item)}
+                disabled={!isReadable}
+              >
+                <BookOpen size={17} />
+                <span>
+                  <strong>{getUnlockedAnecdoteTitle(item)}</strong>
+                  <small>{getUnlockedAnecdoteMeta(item)}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="collection-empty-state">
+          <Lock size={20} />
+          <strong>Aucune anecdote débloquée</strong>
+          <p>Cette collection est prête, mais aucune anecdote n'a encore été révélée.</p>
+        </div>
+      )}
+
+      {lockedCount > 0 && (
+        <div className="collection-locked-summary">
+          <Lock size={16} />
+          <span>{lockedCount} anecdotes encore verrouillées</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ReadableAnecdoteModal({ anecdote, onClose }) {
+  if (!anecdote) return null;
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <section
+        className="modal readable-anecdote-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="readable-anecdote-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button className="close" onClick={onClose} aria-label="Fermer l'anecdote">
+          <X size={22} />
+        </button>
+        <p className="result-kicker">Anecdote débloquée</p>
+        <h2 id="readable-anecdote-title">{anecdote.title}</h2>
+        <MediaFrame
+          className="readable-anecdote-media"
+          src={anecdote.image}
+          fallbackSrc={MEDIA_FALLBACKS.anecdote}
+          code={anecdote.departmentCode}
+          label={anecdote.category}
+          ariaLabel={anecdote.title}
+          alt={anecdote.imageAlt}
+          credit={anecdote.imageCredit}
+        />
+        <div className="readable-anecdote-meta">
+          {anecdote.departmentName && <span>{anecdote.departmentName}</span>}
+          {anecdote.collectionLabel && <span>{anecdote.collectionLabel}</span>}
+          {anecdote.rarity && <span>{anecdote.rarity}</span>}
+        </div>
+        <DiscoverySignals displayAnecdote={anecdote} />
+        <p className="readable-anecdote-content">{anecdote.content}</p>
+        <footer className="modal-actions">
+          <button className="secondary" onClick={onClose}>Fermer</button>
+        </footer>
       </section>
     </div>
   );
@@ -675,6 +808,12 @@ function App() {
   const [discoveryStats, setDiscoveryStats] = useState(getDiscoveryStats);
   const [collectionStats, setCollectionStats] = useState(emptyCollectionStats);
   const [collectionStatsLoading, setCollectionStatsLoading] = useState(false);
+  const [selectedCollectionKey, setSelectedCollectionKey] = useState(null);
+  const [collectionDetail, setCollectionDetail] = useState(null);
+  const [collectionDetailLoading, setCollectionDetailLoading] = useState(false);
+  const [collectionAnecdote, setCollectionAnecdote] = useState(null);
+  const modalHistoryActiveRef = useRef(false);
+  const ignoreNextPopstateRef = useRef(false);
 
   const editionLabel = grid ? `GévoCroisée #${grid.id}` : "GévoCroisée";
   const todayResult = todayGrid ? dailyResults[todayGrid.id] : null;
@@ -716,6 +855,48 @@ function App() {
       ? "1 réinitialisation disponible pour protéger le défi quotidien."
       : "Dernière chance : la grille du jour ne peut être réinitialisée qu’une fois."
     : null;
+  const isModalOpen = Boolean(showRules || aboutPlacement || collectionAnecdote);
+
+  const closeModalHistory = useCallback(() => {
+    if (!modalHistoryActiveRef.current) return;
+
+    modalHistoryActiveRef.current = false;
+    ignoreNextPopstateRef.current = true;
+    window.history.back();
+  }, []);
+
+  const closeRules = useCallback(() => {
+    setShowRules(false);
+    closeModalHistory();
+  }, [closeModalHistory]);
+
+  const closeDepartmentAbout = useCallback(() => {
+    setAboutPlacement(null);
+    closeModalHistory();
+  }, [closeModalHistory]);
+
+  const closeCollectionAnecdote = useCallback(() => {
+    setCollectionAnecdote(null);
+    closeModalHistory();
+  }, [closeModalHistory]);
+
+  const closeTopModal = useCallback((fromHistory = false) => {
+    if (collectionAnecdote) {
+      setCollectionAnecdote(null);
+    } else if (aboutPlacement) {
+      setAboutPlacement(null);
+    } else if (showRules) {
+      setShowRules(false);
+    } else {
+      return;
+    }
+
+    if (fromHistory) {
+      modalHistoryActiveRef.current = false;
+    } else {
+      closeModalHistory();
+    }
+  }, [aboutPlacement, closeModalHistory, collectionAnecdote, showRules]);
 
   useEffect(() => {
     initAnalytics();
@@ -728,6 +909,70 @@ function App() {
   useEffect(() => {
     setDailyResetLimitState(getDailyResetLimitState(todayGrid?.id));
   }, [todayGrid?.id]);
+
+  useEffect(() => {
+    if (!isModalOpen || modalHistoryActiveRef.current) return;
+
+    window.history.pushState({
+      ...(window.history.state ?? {}),
+      geodokuModal: true,
+    }, "", window.location.href);
+    modalHistoryActiveRef.current = true;
+  }, [isModalOpen]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (ignoreNextPopstateRef.current) {
+        ignoreNextPopstateRef.current = false;
+        return;
+      }
+
+      if (!modalHistoryActiveRef.current) return;
+      closeTopModal(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [closeTopModal]);
+
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeTopModal();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [closeTopModal, isModalOpen]);
+
+  useEffect(() => {
+    if (screen !== "stats" || !selectedCollectionKey) {
+      setCollectionDetail(null);
+      setCollectionDetailLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setCollectionDetailLoading(true);
+
+    loadCollectionDetails(selectedCollectionKey)
+      .then((detail) => {
+        if (!cancelled) setCollectionDetail(detail);
+      })
+      .catch(() => {
+        if (!cancelled) setCollectionDetail(null);
+      })
+      .finally(() => {
+        if (!cancelled) setCollectionDetailLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collectionStats.totalCollectionAnecdotesDiscovered, screen, selectedCollectionKey]);
 
   useEffect(() => {
     const recordExitDuringGame = () => {
@@ -842,6 +1087,33 @@ function App() {
     });
   }
 
+  function openCollectionDetail(collectionKey) {
+    setSelectedCollectionKey(collectionKey);
+    setCollectionDetail(null);
+    setCollectionAnecdote(null);
+  }
+
+  function closeCollectionDetail() {
+    setSelectedCollectionKey(null);
+    setCollectionDetail(null);
+    setCollectionAnecdote(null);
+  }
+
+  function openCollectionAnecdote(item) {
+    if (!item?.anecdote || !collectionDetail) return;
+
+    const department = getDepartmentByCode(item.codeDepartement ?? item.anecdote.code_departement);
+    const displayAnecdote = toDisplayAnecdote(item.anecdote, collectionDetail);
+    setCollectionAnecdote({
+      ...displayAnecdote,
+      departmentCode: item.codeDepartement ?? item.anecdote.code_departement,
+      departmentName: department?.name ?? "",
+      collectionLabel: collectionDetail.collectionLabel,
+      discoveredAt: item.discoveredAt,
+      themeLabel: item.themeLabel,
+    });
+  }
+
   function goHome() {
     if (screen === "game" && grid) {
       recordLocalTesterGameAbandoned({
@@ -899,6 +1171,9 @@ function App() {
     setResultAnecdotes({});
     setCellAttemptCounts({});
     setDiscoveryStats(getDiscoveryStats());
+    setSelectedCollectionKey(null);
+    setCollectionDetail(null);
+    setCollectionAnecdote(null);
     setCollectionStatsLoading(true);
     loadCollectionStats()
       .then(setCollectionStats)
@@ -1135,9 +1410,9 @@ function App() {
       </header>
 
       {showRules && (
-        <div className="overlay" onClick={() => setShowRules(false)}>
+        <div className="overlay" onClick={closeRules}>
           <section className="modal rules-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={() => setShowRules(false)}><X size={22} /></button>
+            <button className="close" onClick={closeRules} aria-label="Fermer les règles"><X size={22} /></button>
             <h2>Comment jouer</h2>
             <p>Chaque jour, une grille 3×3 croise plusieurs thèmes liés aux territoires français.</p>
             <p>Touchez une case, choisissez un département, puis remplissez les 9 cases sans utiliser deux fois le même.</p>
@@ -1174,7 +1449,8 @@ function App() {
         </div>
       )}
 
-      <DepartmentAbout placement={aboutPlacement} onClose={() => setAboutPlacement(null)} />
+      <DepartmentAbout placement={aboutPlacement} onClose={closeDepartmentAbout} />
+      <ReadableAnecdoteModal anecdote={collectionAnecdote} onClose={closeCollectionAnecdote} />
 
       {screen === "home" && (
         <section className="hero">
@@ -1304,13 +1580,23 @@ function App() {
             {collectionStats.visibleCollections.length > 0 && (
               <div className="collection-progress-list">
                 {collectionStats.visibleCollections.map((collection) => (
-                  <div className="collection-progress-item" key={collection.collection}>
+                  <button
+                    className={`collection-progress-item ${selectedCollectionKey === collection.collection ? "selected" : ""}`}
+                    key={collection.collection}
+                    onClick={() => openCollectionDetail(collection.collection)}
+                  >
                     <span>{collection.collectionLabel}</span>
                     <strong>{collection.discoveredCount}/{collection.totalAvailable || collection.discoveredCount}</strong>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
+            <CollectionDetailView
+              detail={collectionDetail}
+              loading={collectionDetailLoading}
+              onBack={closeCollectionDetail}
+              onOpenAnecdote={openCollectionAnecdote}
+            />
           </section>
         </section>
       )}

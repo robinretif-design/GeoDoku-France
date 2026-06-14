@@ -22,8 +22,8 @@ Des fichiers par departement sont aussi generes dans `public/data/anecdotes/{cod
 | Fichiers par departement | 107 |
 | Poids total fichiers departement | 1 750 073 o (1709.06 KiB) |
 | Poids gzip cumule fichiers departement | 400 445 o (391.06 KiB) |
-| Poids resume collections | 81 927 o (80.01 KiB) |
-| Poids gzip resume collections | 18 446 o (18.01 KiB) |
+| Poids resume collections | 2 641 o (2.58 KiB) |
+| Poids gzip resume collections | 721 o (0.70 KiB) |
 
 ## Champs conserves
 
@@ -166,7 +166,7 @@ Des fichiers par departement sont aussi generes dans `public/data/anecdotes/{cod
 | Batchs editoriaux source | 1 995 756 o (1948.98 KiB) | 363 693 o (355.17 KiB) |
 | Dataset public valide global | 1 825 104 o (1782.33 KiB) | 312 336 o (305.02 KiB) |
 | Fichiers publics par departement | 1 750 073 o (1709.06 KiB) | 400 445 o (391.06 KiB) |
-| Resume collections public | 81 927 o (80.01 KiB) | 18 446 o (18.01 KiB) |
+| Resume collections public | 2 641 o (2.58 KiB) | 721 o (0.70 KiB) |
 
 ## Plus gros fichiers par departement
 

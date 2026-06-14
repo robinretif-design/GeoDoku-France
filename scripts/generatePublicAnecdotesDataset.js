@@ -128,21 +128,10 @@ function buildCollectionSummary(validated) {
 
     const current = collections[collection.key] ?? {
       totalAvailable: 0,
-      themes: [],
-      codes: [],
     };
 
     current.totalAvailable += 1;
-    if (anecdote.theme && !current.themes.includes(anecdote.theme)) current.themes.push(anecdote.theme);
-    if (anecdote.code_departement && !current.codes.includes(anecdote.code_departement)) {
-      current.codes.push(anecdote.code_departement);
-    }
     collections[collection.key] = current;
-  });
-
-  Object.values(collections).forEach((entry) => {
-    entry.themes.sort((a, b) => a.localeCompare(b, "fr"));
-    entry.codes.sort((a, b) => a.localeCompare(b, "fr"));
   });
 
   return {
