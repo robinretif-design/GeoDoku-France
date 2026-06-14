@@ -202,25 +202,26 @@ export function getCellCommunityStats(key, store = loadCommunityStatsStore()) {
 }
 
 export function getCommunityInsightForPlacement(placement, departments, store = loadCommunityStatsStore()) {
-  if (!placement?.row || !placement?.col || !placement?.key) return null;
+  if (!placement?.row || !placement?.col || !placement?.key || !placement?.dep) return null;
 
   const target = findCommunityTargetDepartment(placement.row, placement.col, departments);
   const targetDepartment = target?.department;
   if (!targetDepartment) return null;
+  if (targetDepartment.code !== placement.dep.code) return null;
 
   const cellStats = getCellCommunityStats(placement.key, store);
   const departmentStats = getDepartmentCommunityStats(targetDepartment.code, store);
 
   if (departmentStats.mostConfusedDepartment?.count >= 2) {
-    return `Tendance locale : ${departmentStats.mostConfusedDepartment.name} est le plus souvent confondu avec ${targetDepartment.name}.`;
+    return `Tendance locale : ${targetDepartment.name} est parfois confondu avec ${departmentStats.mostConfusedDepartment.name} dans vos parties.`;
   }
 
   if (cellStats.attempts >= 2) {
-    return `Tendance locale : ${cellStats.successRate}% de reussite sur ce croisement.`;
+    return `Tendance locale : ${cellStats.successRate}% de reussite avec ${targetDepartment.name} sur ce croisement.`;
   }
 
   if (departmentStats.attempts >= 1) {
-    return `Tendance locale : ${departmentStats.successRate}% de reussite pour ${targetDepartment.name}.`;
+    return `Tendance locale : ${departmentStats.successRate}% de reussite pour ${targetDepartment.name} dans vos parties.`;
   }
 
   return "Tendance locale : premieres donnees en cours de constitution.";

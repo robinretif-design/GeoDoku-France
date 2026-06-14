@@ -22,6 +22,7 @@ import {
 import {
   getDiscoveryStats,
   getRarityMetadata,
+  loadDiscoveryStore,
   recordDiscovery,
 } from "./services/discoveryService.js";
 import {
@@ -71,14 +72,28 @@ const emptyStats = {
   bestScore: 0,
   gamesPlayed: 0,
   masterMoves: 0,
+  masterMoveHistory: [],
   totalScore: 0,
   departmentCounts: {},
 };
 
+function normalizePlayerStats(stats) {
+  return {
+    ...emptyStats,
+    ...(stats ?? {}),
+    departmentCounts: stats?.departmentCounts && typeof stats.departmentCounts === "object"
+      ? stats.departmentCounts
+      : {},
+    masterMoveHistory: Array.isArray(stats?.masterMoveHistory)
+      ? stats.masterMoveHistory
+      : [],
+  };
+}
+
 function loadPlayerStats() {
   try {
     const saved = localStorage.getItem(STATS_STORAGE_KEY);
-    return saved ? { ...emptyStats, ...JSON.parse(saved) } : emptyStats;
+    return saved ? normalizePlayerStats(JSON.parse(saved)) : emptyStats;
   } catch {
     return emptyStats;
   }
@@ -119,17 +134,48 @@ function getFavoriteDepartment(stats) {
   return entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
 }
 
-function recordGameStats(stats, score, bestMove, usedDepartments) {
+function createMasterMoveHistoryEntry(grid, score, bestMove) {
+  if (!grid || !bestMove) return null;
+
+  const completedAt = new Date().toISOString();
+  return {
+    id: `${grid.id}-${completedAt}-${bestMove.dep.code}-${bestMove.row.id}-${bestMove.col.id}`,
+    editionId: grid.id,
+    editionTitle: grid.title,
+    completedAt,
+    totalScore: score,
+    departmentCode: bestMove.dep.code,
+    departmentName: bestMove.dep.name,
+    rowId: bestMove.row.id,
+    rowLabel: bestMove.row.label,
+    colId: bestMove.col.id,
+    colLabel: bestMove.col.label,
+    crossing: bestMove.crossing,
+    cellScore: bestMove.cell.score,
+    cellStatus: bestMove.cell.status,
+    raritySentence: bestMove.raritySentence,
+    anecdoteId: null,
+    anecdoteTitle: null,
+  };
+}
+
+function recordGameStats(stats, score, bestMove, usedDepartments, grid) {
   const departmentCounts = { ...stats.departmentCounts };
   usedDepartments.forEach((name) => {
     departmentCounts[name] = (departmentCounts[name] ?? 0) + 1;
   });
+
+  const masterMoveEntry = createMasterMoveHistoryEntry(grid, score, bestMove);
+  const masterMoveHistory = masterMoveEntry
+    ? [masterMoveEntry, ...(stats.masterMoveHistory ?? [])].slice(0, 100)
+    : (stats.masterMoveHistory ?? []);
 
   return {
     ...stats,
     bestScore: Math.max(stats.bestScore, score),
     gamesPlayed: stats.gamesPlayed + 1,
     masterMoves: stats.masterMoves + (bestMove ? 1 : 0),
+    masterMoveHistory,
     totalScore: stats.totalScore + score,
     departmentCounts,
   };
@@ -443,6 +489,16 @@ async function loadCollectionDetails(collectionKey) {
   return getCollectionDetails(collectionKey);
 }
 
+async function loadAnecdoteLibraryItems() {
+  const { getAnecdoteLibrary } = await loadAnecdoteServices();
+  return getAnecdoteLibrary();
+}
+
+async function resolveDiscoveryLibraryItems(discoveries) {
+  const { resolveAnecdoteDiscoveryItems } = await loadAnecdoteServices();
+  return resolveAnecdoteDiscoveryItems(discoveries);
+}
+
 async function selectDepartmentAnecdote(placement, displayContext = "result") {
   const dep = placement?.dep;
   if (!dep) return null;
@@ -678,7 +734,7 @@ function getUnlockedAnecdoteMeta(item) {
   ].filter(Boolean).join(" · ");
 }
 
-function CollectionDetailView({ detail, loading, onBack, onOpenAnecdote }) {
+function CollectionDetailView({ detail, loading, onBack = null, onOpenAnecdote }) {
   if (loading && !detail) {
     return (
       <section className="collection-detail-view" aria-live="polite">
@@ -692,12 +748,15 @@ function CollectionDetailView({ detail, loading, onBack, onOpenAnecdote }) {
   const unlockedAnecdotes = detail.unlockedAnecdotes ?? [];
   const totalAvailable = detail.totalAvailable || detail.discoveredCount;
   const lockedCount = Math.max(0, detail.lockedCount ?? totalAvailable - unlockedAnecdotes.length);
+  const visibleLockedItems = Math.min(lockedCount, 6);
 
   return (
     <section className="collection-detail-view" aria-live="polite">
-      <button className="text-button collection-back-button" onClick={onBack}>
-        <ChevronLeft size={16} /> Collections
-      </button>
+      {onBack && (
+        <button className="text-button collection-back-button" onClick={onBack}>
+          <ChevronLeft size={16} /> Collections
+        </button>
+      )}
       <div className="collection-detail-heading">
         <div>
           <p className="result-kicker">Collection</p>
@@ -739,10 +798,20 @@ function CollectionDetailView({ detail, loading, onBack, onOpenAnecdote }) {
       )}
 
       {lockedCount > 0 && (
-        <div className="collection-locked-summary">
-          <Lock size={16} />
-          <span>{lockedCount} anecdotes encore verrouillées</span>
-        </div>
+        <>
+          <div className="collection-locked-list" aria-label="Anecdotes à découvrir">
+            {Array.from({ length: visibleLockedItems }).map((_, index) => (
+              <div className="collection-locked-item" key={`${detail.collection}-locked-${index}`}>
+                <Lock size={15} />
+                <span>À découvrir</span>
+              </div>
+            ))}
+          </div>
+          <div className="collection-locked-summary">
+            <Lock size={16} />
+            <span>{lockedCount} anecdotes encore verrouillées</span>
+          </div>
+        </>
       )}
     </section>
   );
@@ -790,6 +859,214 @@ function ReadableAnecdoteModal({ anecdote, onClose }) {
   );
 }
 
+function DiscoveryViewModal({ title, subtitle, onClose, children }) {
+  return (
+    <div className="overlay" onClick={onClose}>
+      <section
+        className="modal discovery-view-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="discovery-view-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button className="close" onClick={onClose} aria-label="Fermer la vue">
+          <X size={22} />
+        </button>
+        <p className="result-kicker">Carnet de découvertes</p>
+        <h2 id="discovery-view-title">{title}</h2>
+        {subtitle && <p className="discovery-view-subtitle">{subtitle}</p>}
+        {children}
+        <footer className="modal-actions">
+          <button className="secondary" onClick={onClose}>Fermer</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function AnecdoteLibraryList({ items, loading, emptyTitle, emptyText, onOpenAnecdote }) {
+  if (loading) {
+    return <p className="loading-note">Chargement des anecdotes...</p>;
+  }
+
+  if (!items.length) {
+    return (
+      <div className="collection-empty-state">
+        <BookOpen size={20} />
+        <strong>{emptyTitle}</strong>
+        <p>{emptyText}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="reward-list">
+      {items.map((item) => {
+        const isReadable = Boolean(item.anecdote);
+        return (
+          <button
+            className="reward-list-item"
+            key={item.anecdoteId}
+            disabled={!isReadable}
+            onClick={() => isReadable && onOpenAnecdote(item)}
+          >
+            <BookOpen size={17} />
+            <span>
+              <strong>{getUnlockedAnecdoteTitle(item)}</strong>
+              <small>{getUnlockedAnecdoteMeta(item)}</small>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CollectionsLibraryView({ collections, onOpenCollection }) {
+  if (!collections.length) {
+    return (
+      <div className="collection-empty-state">
+        <Lock size={20} />
+        <strong>Aucune collection découverte</strong>
+        <p>Les collections apparaîtront ici quand une première anecdote y sera classée.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="collection-progress-list discovery-view-list">
+      {collections.map((collection) => (
+        <button
+          className="collection-progress-item"
+          key={collection.collection}
+          onClick={() => onOpenCollection(collection.collection)}
+        >
+          <span>{collection.collectionLabel}</span>
+          <strong>{collection.discoveredCount}/{collection.totalAvailable || collection.discoveredCount}</strong>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NotebookOverview({ collectionStats, discoveryStats, playerStats, onOpenView }) {
+  const overviewItems = [
+    {
+      key: "collections",
+      value: collectionStats.totalCollectionsDiscovered,
+      label: "Collections découvertes",
+    },
+    {
+      key: "anecdotes",
+      value: collectionStats.totalCollectionAnecdotesDiscovered,
+      label: "Anecdotes classées",
+    },
+    {
+      key: "rare",
+      value: discoveryStats.rareOrBetterDiscoveries,
+      label: "Anecdotes rares",
+    },
+    {
+      key: "legendary",
+      value: discoveryStats.legendaryDiscoveries,
+      label: "Anecdotes légendaires",
+    },
+    {
+      key: "masterMoves",
+      value: playerStats.masterMoves,
+      label: "Coups de maître",
+    },
+  ];
+
+  return (
+    <div className="notebook-overview-grid">
+      {overviewItems.map((item) => (
+        <button className="notebook-overview-item" key={item.key} onClick={() => onOpenView(item.key)}>
+          <strong>{item.value}</strong>
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MasterMovesView({ items, totalCount = 0, onOpenAnecdote }) {
+  if (!items.length) {
+    return (
+      <div className="collection-empty-state">
+        <Lock size={20} />
+        <strong>{totalCount > 0 ? "Historique détaillé à venir" : "Aucun coup de maître enregistré"}</strong>
+        <p>
+          {totalCount > 0
+            ? "Le compteur existait déjà, mais le détail sera conservé pour les prochaines grilles."
+            : "Les prochains meilleurs choix validés seront conservés ici."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="master-history-list">
+      {items.map((item) => {
+        const hasAnecdote = Boolean(item.anecdote);
+        return (
+          <article className="master-history-item" key={item.id}>
+            <div>
+              <p className="result-kicker">GévoCroisée #{item.editionId}</p>
+              <h3>{item.departmentName}</h3>
+              <p>{item.crossing}</p>
+              <div className="readable-anecdote-meta">
+                <span>{item.cellScore}/9</span>
+                {item.cellStatus && <span>{item.cellStatus}</span>}
+                {item.totalScore != null && <span>Score {item.totalScore}/101</span>}
+              </div>
+              {item.anecdoteTitle && <p className="master-history-anecdote">Anecdote associée : {item.anecdoteTitle}</p>}
+            </div>
+            {hasAnecdote ? (
+              <button className="text-button" onClick={() => onOpenAnecdote(item)}>
+                <BookOpen size={15} /> Relire l'anecdote
+              </button>
+            ) : (
+              <p className="loading-note">Aucune anecdote associée pour le moment.</p>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function getDiscoveryViewConfig(view) {
+  const configs = {
+    notebook: {
+      title: "Carnet de découvertes",
+      subtitle: "Tout ce qui a été débloqué depuis le début de l'aventure.",
+    },
+    collections: {
+      title: "Collections découvertes",
+      subtitle: "Collections dans lesquelles au moins une anecdote a été classée.",
+    },
+    anecdotes: {
+      title: "Anecdotes classées",
+      subtitle: "Bibliothèque personnelle de toutes les anecdotes déjà débloquées.",
+    },
+    rare: {
+      title: "Anecdotes rares",
+      subtitle: "Anecdotes rares, très rares et légendaires déjà obtenues.",
+    },
+    legendary: {
+      title: "Anecdotes légendaires",
+      subtitle: "Les découvertes les plus rares du carnet.",
+    },
+    masterMoves: {
+      title: "Coups de maître",
+      subtitle: "Historique des meilleurs choix validés dans vos grilles.",
+    },
+  };
+
+  return configs[view] ?? configs.notebook;
+}
+
 function App() {
   const calendarState = useMemo(() => getGridCalendarState(), []);
   const { todayGrid, pastGrids, unlockedGrids, isExhausted, startDate } = calendarState;
@@ -812,8 +1089,13 @@ function App() {
   const [collectionDetail, setCollectionDetail] = useState(null);
   const [collectionDetailLoading, setCollectionDetailLoading] = useState(false);
   const [collectionAnecdote, setCollectionAnecdote] = useState(null);
-  const modalHistoryActiveRef = useRef(false);
-  const ignoreNextPopstateRef = useRef(false);
+  const [activeDiscoveryView, setActiveDiscoveryView] = useState(null);
+  const [libraryItems, setLibraryItems] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [masterMoveItems, setMasterMoveItems] = useState([]);
+  const [masterMoveLoading, setMasterMoveLoading] = useState(false);
+  const modalHistoryDepthRef = useRef(0);
+  const ignoreNextPopstateRef = useRef(0);
 
   const editionLabel = grid ? `GévoCroisée #${grid.id}` : "GévoCroisée";
   const todayResult = todayGrid ? dailyResults[todayGrid.id] : null;
@@ -855,13 +1137,16 @@ function App() {
       ? "1 réinitialisation disponible pour protéger le défi quotidien."
       : "Dernière chance : la grille du jour ne peut être réinitialisée qu’une fois."
     : null;
-  const isModalOpen = Boolean(showRules || aboutPlacement || collectionAnecdote);
+  const hasDiscoveryPanel = Boolean(selectedCollectionKey || activeDiscoveryView);
+  const modalLayerCount = Number(Boolean(showRules || aboutPlacement || hasDiscoveryPanel)) + Number(Boolean(collectionAnecdote));
+  const isModalOpen = modalLayerCount > 0;
+  const activeDiscoveryConfig = getDiscoveryViewConfig(activeDiscoveryView);
 
   const closeModalHistory = useCallback(() => {
-    if (!modalHistoryActiveRef.current) return;
+    if (modalHistoryDepthRef.current <= 0) return;
 
-    modalHistoryActiveRef.current = false;
-    ignoreNextPopstateRef.current = true;
+    modalHistoryDepthRef.current -= 1;
+    ignoreNextPopstateRef.current += 1;
     window.history.back();
   }, []);
 
@@ -883,6 +1168,9 @@ function App() {
   const closeTopModal = useCallback((fromHistory = false) => {
     if (collectionAnecdote) {
       setCollectionAnecdote(null);
+    } else if (selectedCollectionKey || activeDiscoveryView) {
+      setSelectedCollectionKey(null);
+      setActiveDiscoveryView(null);
     } else if (aboutPlacement) {
       setAboutPlacement(null);
     } else if (showRules) {
@@ -892,11 +1180,11 @@ function App() {
     }
 
     if (fromHistory) {
-      modalHistoryActiveRef.current = false;
+      modalHistoryDepthRef.current = Math.max(0, modalHistoryDepthRef.current - 1);
     } else {
       closeModalHistory();
     }
-  }, [aboutPlacement, closeModalHistory, collectionAnecdote, showRules]);
+  }, [aboutPlacement, activeDiscoveryView, closeModalHistory, collectionAnecdote, selectedCollectionKey, showRules]);
 
   useEffect(() => {
     initAnalytics();
@@ -911,23 +1199,25 @@ function App() {
   }, [todayGrid?.id]);
 
   useEffect(() => {
-    if (!isModalOpen || modalHistoryActiveRef.current) return;
+    if (!isModalOpen) return;
 
-    window.history.pushState({
-      ...(window.history.state ?? {}),
-      geodokuModal: true,
-    }, "", window.location.href);
-    modalHistoryActiveRef.current = true;
-  }, [isModalOpen]);
+    while (modalHistoryDepthRef.current < modalLayerCount) {
+      window.history.pushState({
+        ...(window.history.state ?? {}),
+        geodokuModal: true,
+      }, "", window.location.href);
+      modalHistoryDepthRef.current += 1;
+    }
+  }, [isModalOpen, modalLayerCount]);
 
   useEffect(() => {
     const handlePopState = () => {
-      if (ignoreNextPopstateRef.current) {
-        ignoreNextPopstateRef.current = false;
+      if (ignoreNextPopstateRef.current > 0) {
+        ignoreNextPopstateRef.current -= 1;
         return;
       }
 
-      if (!modalHistoryActiveRef.current) return;
+      if (modalHistoryDepthRef.current <= 0) return;
       closeTopModal(true);
     };
 
@@ -973,6 +1263,77 @@ function App() {
       cancelled = true;
     };
   }, [collectionStats.totalCollectionAnecdotesDiscovered, screen, selectedCollectionKey]);
+
+  useEffect(() => {
+    if (screen !== "stats" || !activeDiscoveryView) {
+      setLibraryItems([]);
+      setLibraryLoading(false);
+      setMasterMoveItems([]);
+      setMasterMoveLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    if (["anecdotes", "rare", "legendary"].includes(activeDiscoveryView)) {
+      setLibraryLoading(true);
+      const loadItems = activeDiscoveryView === "anecdotes"
+        ? loadAnecdoteLibraryItems()
+        : resolveDiscoveryLibraryItems(loadDiscoveryStore().discoveries.filter((discovery) => {
+            const level = getRarityMetadata(discovery.rarity).level;
+            return activeDiscoveryView === "legendary" ? level >= 4 : level >= 2;
+          }));
+
+      loadItems
+        .then((items) => {
+          if (!cancelled) setLibraryItems(items);
+        })
+        .catch(() => {
+          if (!cancelled) setLibraryItems([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLibraryLoading(false);
+        });
+    }
+
+    if (activeDiscoveryView === "masterMoves") {
+      const history = [...(playerStats.masterMoveHistory ?? [])];
+      setMasterMoveLoading(true);
+      resolveDiscoveryLibraryItems(history
+        .filter((entry) => entry.anecdoteId)
+        .map((entry) => ({
+          anecdoteId: entry.anecdoteId,
+          codeDepartement: entry.departmentCode,
+          rarete: entry.anecdoteRarity,
+          discoveredAt: entry.completedAt,
+        })))
+        .then((resolvedItems) => {
+          if (cancelled) return;
+          const byAnecdoteId = new Map(resolvedItems.map((item) => [item.anecdoteId, item]));
+          setMasterMoveItems(history.map((entry) => {
+            const resolved = entry.anecdoteId ? byAnecdoteId.get(entry.anecdoteId) : null;
+            return {
+              ...entry,
+              anecdote: resolved?.anecdote ?? null,
+              codeDepartement: entry.departmentCode,
+              rarete: entry.anecdoteRarity,
+              discoveredAt: entry.completedAt,
+              collectionLabel: resolved?.collectionLabel ?? "",
+            };
+          }));
+        })
+        .catch(() => {
+          if (!cancelled) setMasterMoveItems(history);
+        })
+        .finally(() => {
+          if (!cancelled) setMasterMoveLoading(false);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDiscoveryView, playerStats.masterMoveHistory, screen]);
 
   useEffect(() => {
     const recordExitDuringGame = () => {
@@ -1036,6 +1397,38 @@ function App() {
     trackGevocroiseeEvent("rules_opened", { screen });
   }
 
+  function rememberMasterMoveAnecdote(placement, displayAnecdote) {
+    if (!grid || !placement?.dep || !displayAnecdote || displayAnecdote.isFallback) return;
+
+    setPlayerStats((currentStats) => {
+      const history = currentStats.masterMoveHistory ?? [];
+      let changed = false;
+      const nextHistory = history.map((entry) => {
+        const matchesEntry = entry.editionId === grid.id
+          && entry.departmentCode === placement.dep.code
+          && entry.rowId === placement.row.id
+          && entry.colId === placement.col.id;
+
+        if (!matchesEntry) return entry;
+        changed = true;
+        return {
+          ...entry,
+          anecdoteId: displayAnecdote.id,
+          anecdoteTitle: displayAnecdote.title,
+          anecdoteRarity: displayAnecdote.rarity,
+        };
+      });
+
+      if (!changed) return currentStats;
+      const nextStats = {
+        ...currentStats,
+        masterMoveHistory: nextHistory,
+      };
+      savePlayerStats(nextStats);
+      return nextStats;
+    });
+  }
+
   function openDepartmentAbout(placement, context = "unknown") {
     if (!placement?.dep) return;
 
@@ -1069,6 +1462,10 @@ function App() {
           if (context === "result") {
             setResultAnecdotes((prev) => ({ ...prev, [resultCacheKey]: nextDisplayAnecdote }));
           }
+
+          if (context === "master_move") {
+            rememberMasterMoveAnecdote(placement, nextDisplayAnecdote);
+          }
         })
         .catch(() => {
           setAboutPlacement((current) => {
@@ -1088,6 +1485,7 @@ function App() {
   }
 
   function openCollectionDetail(collectionKey) {
+    setActiveDiscoveryView(null);
     setSelectedCollectionKey(collectionKey);
     setCollectionDetail(null);
     setCollectionAnecdote(null);
@@ -1097,21 +1495,45 @@ function App() {
     setSelectedCollectionKey(null);
     setCollectionDetail(null);
     setCollectionAnecdote(null);
+    closeModalHistory();
   }
 
-  function openCollectionAnecdote(item) {
-    if (!item?.anecdote || !collectionDetail) return;
+  function openDiscoveryView(view) {
+    setActiveDiscoveryView(view);
+    setSelectedCollectionKey(null);
+    setCollectionDetail(null);
+    setCollectionAnecdote(null);
+  }
+
+  function closeDiscoveryView() {
+    setActiveDiscoveryView(null);
+    setSelectedCollectionKey(null);
+    setCollectionDetail(null);
+    setCollectionAnecdote(null);
+    closeModalHistory();
+  }
+
+  function openLibraryAnecdote(item, collection = null) {
+    if (!item?.anecdote) return;
 
     const department = getDepartmentByCode(item.codeDepartement ?? item.anecdote.code_departement);
-    const displayAnecdote = toDisplayAnecdote(item.anecdote, collectionDetail);
+    const displayAnecdote = toDisplayAnecdote(item.anecdote, collection);
     setCollectionAnecdote({
       ...displayAnecdote,
       departmentCode: item.codeDepartement ?? item.anecdote.code_departement,
       departmentName: department?.name ?? "",
-      collectionLabel: collectionDetail.collectionLabel,
+      collectionLabel: item.collectionLabel ?? collection?.collectionLabel ?? "",
       discoveredAt: item.discoveredAt,
       themeLabel: item.themeLabel,
     });
+  }
+
+  function openCollectionAnecdote(item) {
+    if (!item?.anecdote || !collectionDetail) return;
+    openLibraryAnecdote({
+      ...item,
+      collectionLabel: collectionDetail.collectionLabel,
+    }, collectionDetail);
   }
 
   function goHome() {
@@ -1174,6 +1596,9 @@ function App() {
     setSelectedCollectionKey(null);
     setCollectionDetail(null);
     setCollectionAnecdote(null);
+    setActiveDiscoveryView(null);
+    setLibraryItems([]);
+    setMasterMoveItems([]);
     setCollectionStatsLoading(true);
     loadCollectionStats()
       .then(setCollectionStats)
@@ -1306,7 +1731,7 @@ function App() {
       completionBonus: computed.completionBonus,
     });
 
-    const nextStats = recordGameStats(playerStats, computed.total, bestMove, usedDepartments);
+    const nextStats = recordGameStats(playerStats, computed.total, bestMove, usedDepartments, grid);
     setPlayerStats(nextStats);
     savePlayerStats(nextStats);
 
@@ -1451,6 +1876,55 @@ function App() {
 
       <DepartmentAbout placement={aboutPlacement} onClose={closeDepartmentAbout} />
       <ReadableAnecdoteModal anecdote={collectionAnecdote} onClose={closeCollectionAnecdote} />
+      {selectedCollectionKey && (
+        <DiscoveryViewModal
+          title={collectionDetail?.collectionLabel ?? "Collection"}
+          subtitle="Anecdotes débloquées et découvertes restantes."
+          onClose={closeCollectionDetail}
+        >
+          <CollectionDetailView
+            detail={collectionDetail}
+            loading={collectionDetailLoading}
+            onOpenAnecdote={openCollectionAnecdote}
+          />
+        </DiscoveryViewModal>
+      )}
+      {activeDiscoveryView && (
+        <DiscoveryViewModal
+          title={activeDiscoveryConfig.title}
+          subtitle={activeDiscoveryConfig.subtitle}
+          onClose={closeDiscoveryView}
+        >
+          {activeDiscoveryView === "notebook" && (
+            <NotebookOverview
+              collectionStats={collectionStats}
+              discoveryStats={discoveryStats}
+              playerStats={playerStats}
+              onOpenView={openDiscoveryView}
+            />
+          )}
+          {activeDiscoveryView === "collections" && (
+            <CollectionsLibraryView
+              collections={collectionStats.byCollection}
+              onOpenCollection={openCollectionDetail}
+            />
+          )}
+          {["anecdotes", "rare", "legendary"].includes(activeDiscoveryView) && (
+            <AnecdoteLibraryList
+              items={libraryItems}
+              loading={libraryLoading}
+              emptyTitle={activeDiscoveryView === "legendary" ? "Aucune anecdote légendaire" : "Aucune anecdote débloquée"}
+              emptyText="Les découvertes apparaîtront ici au fil des grilles jouées."
+              onOpenAnecdote={openLibraryAnecdote}
+            />
+          )}
+          {activeDiscoveryView === "masterMoves" && (
+            masterMoveLoading
+              ? <p className="loading-note">Chargement des coups de maître...</p>
+              : <MasterMovesView items={masterMoveItems} totalCount={playerStats.masterMoves} onOpenAnecdote={openLibraryAnecdote} />
+          )}
+        </DiscoveryViewModal>
+      )}
 
       {screen === "home" && (
         <section className="hero">
@@ -1543,35 +2017,40 @@ function App() {
               <strong>{getAverageScore(playerStats)}</strong>
               <span>Moyenne</span>
             </div>
-            <div className="result-card stat-card">
+            <button className="result-card stat-card clickable-stat-card" onClick={() => openDiscoveryView("rare")}>
               <strong>{discoveryStats.rareOrBetterDiscoveries}</strong>
               <span>Anecdotes rares</span>
-            </div>
-            <div className="result-card stat-card">
+            </button>
+            <button className="result-card stat-card clickable-stat-card" onClick={() => openDiscoveryView("legendary")}>
               <strong>{discoveryStats.legendaryDiscoveries}</strong>
               <span>Légendaires</span>
-            </div>
-            <div className="result-card stat-card">
+            </button>
+            <button className="result-card stat-card clickable-stat-card" onClick={() => openDiscoveryView("masterMoves")}>
               <strong>{playerStats.masterMoves}</strong>
               <span>Coups de maître</span>
-            </div>
+            </button>
           </div>
           <section className="result-card favorite-card">
             <p className="result-kicker">Département favori</p>
             <h2>{getFavoriteDepartment(playerStats)}</h2>
           </section>
           <section className="result-card collections-card">
-            <p className="result-kicker">Collections</p>
+            <div className="collections-card-heading">
+              <p className="result-kicker">Collections</p>
+              <button className="text-button" onClick={() => openDiscoveryView("notebook")}>
+                <BookOpen size={15} /> Carnet
+              </button>
+            </div>
             {collectionStatsLoading && <p className="loading-note">Chargement des collections...</p>}
             <div className="collections-summary">
-              <div>
+              <button className="collections-summary-action" onClick={() => openDiscoveryView("collections")}>
                 <strong>{collectionStats.totalCollectionsDiscovered}</strong>
                 <span>collections découvertes</span>
-              </div>
-              <div>
+              </button>
+              <button className="collections-summary-action" onClick={() => openDiscoveryView("anecdotes")}>
                 <strong>{collectionStats.totalCollectionAnecdotesDiscovered}</strong>
                 <span>anecdotes classées</span>
-              </div>
+              </button>
               <div>
                 <strong>{collectionStats.lastCollectionDiscovered?.collectionLabel ?? "Aucune"}</strong>
                 <span>dernière collection</span>
@@ -1591,12 +2070,6 @@ function App() {
                 ))}
               </div>
             )}
-            <CollectionDetailView
-              detail={collectionDetail}
-              loading={collectionDetailLoading}
-              onBack={closeCollectionDetail}
-              onOpenAnecdote={openCollectionAnecdote}
-            />
           </section>
         </section>
       )}

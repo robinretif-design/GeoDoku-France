@@ -377,6 +377,25 @@ export async function getCollectionDetails(collectionKey, store = loadCollection
   };
 }
 
+export async function getAnecdoteLibrary(store = loadCollectionsStore()) {
+  const normalizedStore = normalizeStore(store);
+  const uniqueDiscoveries = [...new Map(normalizedStore.discoveries.map((discovery) => [
+    discovery.anecdoteId,
+    discovery,
+  ])).values()]
+    .sort((a, b) => new Date(b.discoveredAt).getTime() - new Date(a.discoveredAt).getTime());
+
+  return resolveAnecdoteDiscoveryItems(uniqueDiscoveries);
+}
+
+export async function resolveAnecdoteDiscoveryItems(discoveries = []) {
+  const normalizedDiscoveries = discoveries
+    .map(normalizeExternalDiscovery)
+    .filter((discovery) => discovery.anecdoteId);
+
+  return Promise.all(normalizedDiscoveries.map(resolveDiscoveryAnecdote));
+}
+
 async function getCollectionProgress(collectionKey, store = loadCollectionsStore(), summaryOverride = null) {
   const collection = getCollectionByKey(collectionKey) ?? FALLBACK_COLLECTION;
   const normalizedStore = normalizeStore(store);
@@ -396,6 +415,20 @@ async function getCollectionProgress(collectionKey, store = loadCollectionsStore
     progressPercent: percentage(uniqueAnecdotes.size, totalAvailable),
     isNewAnecdote: false,
     isNewCollection: false,
+  };
+}
+
+function normalizeExternalDiscovery(discovery) {
+  const anecdoteId = String(discovery?.anecdoteId ?? discovery?.id ?? "");
+  return {
+    theme: normalizeTheme(discovery?.theme),
+    themeLabel: discovery?.themeLabel ?? formatLabel(discovery?.theme),
+    collection: discovery?.collection ?? null,
+    collectionLabel: discovery?.collectionLabel ?? "",
+    anecdoteId,
+    codeDepartement: discovery?.codeDepartement ?? discovery?.code_departement ?? discovery?.departmentCode ?? null,
+    rarete: discovery?.rarete ?? discovery?.rarity ?? null,
+    discoveredAt: discovery?.discoveredAt ?? discovery?.dateDecouverte ?? new Date().toISOString(),
   };
 }
 
