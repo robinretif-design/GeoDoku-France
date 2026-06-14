@@ -1,0 +1,28 @@
+[
+  {
+    "id": "06-histoire-004",
+    "code_departement": "06",
+    "titre": "Tende et La Brigue",
+    "contenu": "Tende et La Brigue rejoignent la France après la Seconde Guerre mondiale. Cette histoire très récente montre la complexité de la frontière alpine. Les Alpes-Maritimes possèdent donc une mémoire territoriale mouvante, entre France, Italie et montagne.",
+    "categorie": "histoire",
+    "difficulte": 3,
+    "rarete": "rare",
+    "ton": "neutre",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  },
+  {
+    "id": "06-seed-0012",
+    "code_departement": "06",
+    "titre": "Comprendre Alpes-Maritimes",
+    "contenu": "Mer, montagne, cinéma et architecture Belle Époque en font un département très puissant, donc souvent peu prestigieux.",
+    "categorie": "cinéma",
+    "difficulte": 1,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

@@ -22,6 +22,36 @@ body {
 }
 button { font: inherit; color: inherit; }
 .app { width: min(1220px, 100%); margin: 0 auto; min-height: 100vh; padding: 18px clamp(18px, 4vw, 42px) 40px; }
+.loading-shell {
+  min-height: calc(100vh - 58px);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.loading-mark {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+}
+.loading-mark img {
+  display: block;
+  width: 58px;
+  height: 58px;
+}
+.loading-shell p,
+.loading-note {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.loading-shell p {
+  margin: 0;
+  font-weight: 800;
+}
+.loading-note {
+  margin: 8px 0;
+  font-style: italic;
+}
 
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding: 8px 0 34px; }
 .topbar-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }

@@ -3,39 +3,50 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { anecdotes } from "../src/data/anecdotes.js";
+import { getCollectionForAnecdote } from "../src/data/collections.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const outputDir = path.join(rootDir, "public", "data");
+const departmentOutputDir = path.join(outputDir, "anecdotes");
 const outputPath = path.join(outputDir, "anecdotes-valides.json");
+const collectionSummaryPath = path.join(outputDir, "anecdotes-collections-summary.json");
 const reportPath = path.join(rootDir, "data", "public_anecdotes_dataset_report.md");
 
-const PUBLIC_FIELDS = ["id", "titre", "contenu", "categorie", "rarete", "ton", "contexte", "theme"];
-const EXCLUDED_FIELDS = [
+const VALIDATED_STATUS = "validée";
+const PUBLIC_FIELDS = [
+  "id",
   "code_departement",
-  "source",
-  "statut_validation",
-  "date_ajout",
-  "date_modification",
+  "titre",
+  "contenu",
+  "categorie",
   "difficulte",
-  "validee",
+  "rarete",
+  "ton",
+  "contexte",
+  "theme",
+  "statut_validation",
 ];
+const EXCLUDED_FIELDS = ["source", "date_ajout", "date_modification", "validee"];
 
 function isValidated(anecdote) {
-  return anecdote?.statut_validation === "validée";
+  return anecdote?.statut_validation === VALIDATED_STATUS;
 }
 
 function toPublicAnecdote(anecdote) {
   return {
     id: anecdote.id,
+    code_departement: anecdote.code_departement,
     titre: anecdote.titre,
     contenu: anecdote.contenu,
     categorie: anecdote.categorie,
+    difficulte: anecdote.difficulte,
     rarete: anecdote.rarete,
     ton: anecdote.ton,
     contexte: anecdote.contexte,
     theme: anecdote.theme ?? null,
+    statut_validation: anecdote.statut_validation,
   };
 }
 
@@ -108,49 +119,131 @@ function buildDataset() {
   return { dataset, validated };
 }
 
-function buildReport({ dataset, validated, outputSize, outputGzipSize, distJsStats, batchStats }) {
+function buildCollectionSummary(validated) {
+  const collections = {};
+
+  validated.forEach((anecdote) => {
+    const collection = getCollectionForAnecdote(anecdote);
+    if (!collection?.key) return;
+
+    const current = collections[collection.key] ?? {
+      totalAvailable: 0,
+      themes: [],
+      codes: [],
+    };
+
+    current.totalAvailable += 1;
+    if (anecdote.theme && !current.themes.includes(anecdote.theme)) current.themes.push(anecdote.theme);
+    if (anecdote.code_departement && !current.codes.includes(anecdote.code_departement)) {
+      current.codes.push(anecdote.code_departement);
+    }
+    collections[collection.key] = current;
+  });
+
+  Object.values(collections).forEach((entry) => {
+    entry.themes.sort((a, b) => a.localeCompare(b, "fr"));
+    entry.codes.sort((a, b) => a.localeCompare(b, "fr"));
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    source: "anecdotes validees",
+    totalValidatedAnecdotes: validated.length,
+    totalAvailableCollections: Object.keys(collections).length,
+    collections,
+  };
+}
+
+function writeDepartmentFiles(dataset) {
+  fs.rmSync(departmentOutputDir, { recursive: true, force: true });
+  fs.mkdirSync(departmentOutputDir, { recursive: true });
+
+  return Object.entries(dataset)
+    .sort(([a], [b]) => a.localeCompare(b, "fr"))
+    .map(([code, anecdotesForDepartment]) => {
+      const json = `${JSON.stringify(anecdotesForDepartment, null, 2)}\n`;
+      const fileName = `${code}.json`;
+      const filePath = path.join(departmentOutputDir, fileName);
+      fs.writeFileSync(filePath, json, "utf8");
+
+      const buffer = Buffer.from(json, "utf8");
+      return {
+        code,
+        file: `data/anecdotes/${fileName}`,
+        count: anecdotesForDepartment.length,
+        size: buffer.length,
+        gzip: gzipSize(buffer),
+      };
+    });
+}
+
+function buildReport({
+  dataset,
+  validated,
+  outputSize,
+  outputGzipSize,
+  distJsStats,
+  batchStats,
+  departmentFiles,
+  collectionSummarySize,
+  collectionSummaryGzipSize,
+}) {
   const departmentCodes = Object.keys(dataset).sort((a, b) => a.localeCompare(b, "fr"));
   const excludedCounts = {
     "à vérifier": anecdotes.filter((anecdote) => anecdote.statut_validation === "à vérifier").length,
     brouillon: anecdotes.filter((anecdote) => anecdote.statut_validation === "brouillon").length,
     rejetée: anecdotes.filter((anecdote) => anecdote.statut_validation === "rejetée").length,
   };
-
+  const totalDepartmentFilesSize = departmentFiles.reduce((total, entry) => total + entry.size, 0);
+  const totalDepartmentFilesGzipSize = departmentFiles.reduce((total, entry) => total + entry.gzip, 0);
   const rows = departmentCodes.map((code) => `| ${code} | ${dataset[code].length} |`);
+  const largestDepartmentFiles = [...departmentFiles]
+    .sort((a, b) => b.size - a.size)
+    .slice(0, 10)
+    .map((entry) => `| ${entry.code} | ${entry.count} | ${formatBytes(entry.size)} | ${formatBytes(entry.gzip)} |`);
   const distLines = distJsStats
     ? [
       `| Bundle JS actuel | ${formatBytes(distJsStats.size)} | ${formatBytes(distJsStats.gzip)} |`,
-      `| Batchs éditoriaux source | ${formatBytes(batchStats.rawSize)} | ${formatBytes(batchStats.gzip)} |`,
-      `| Dataset public validé | ${formatBytes(outputSize)} | ${formatBytes(outputGzipSize)} |`,
+      `| Batchs editoriaux source | ${formatBytes(batchStats.rawSize)} | ${formatBytes(batchStats.gzip)} |`,
+      `| Dataset public valide global | ${formatBytes(outputSize)} | ${formatBytes(outputGzipSize)} |`,
+      `| Fichiers publics par departement | ${formatBytes(totalDepartmentFilesSize)} | ${formatBytes(totalDepartmentFilesGzipSize)} |`,
+      `| Resume collections public | ${formatBytes(collectionSummarySize)} | ${formatBytes(collectionSummaryGzipSize)} |`,
     ]
     : [
-      `| Batchs éditoriaux source | ${formatBytes(batchStats.rawSize)} | ${formatBytes(batchStats.gzip)} |`,
-      `| Dataset public validé | ${formatBytes(outputSize)} | ${formatBytes(outputGzipSize)} |`,
+      `| Batchs editoriaux source | ${formatBytes(batchStats.rawSize)} | ${formatBytes(batchStats.gzip)} |`,
+      `| Dataset public valide global | ${formatBytes(outputSize)} | ${formatBytes(outputGzipSize)} |`,
+      `| Fichiers publics par departement | ${formatBytes(totalDepartmentFilesSize)} | ${formatBytes(totalDepartmentFilesGzipSize)} |`,
+      `| Resume collections public | ${formatBytes(collectionSummarySize)} | ${formatBytes(collectionSummaryGzipSize)} |`,
     ];
 
-  return `# Rapport dataset public anecdotes validées
+  return `# Rapport dataset public anecdotes validees
 
-Date : 2026-06-04
+Date : ${new Date().toISOString().slice(0, 10)}
 
-## Résumé
+## Resume
 
-Un dataset public allégé a été généré dans \`public/data/anecdotes-valides.json\`.
+Un dataset public global reste genere dans \`public/data/anecdotes-valides.json\`.
 
-Ce fichier prépare une future bascule vers un chargement différé, sans modifier le comportement actuel de l'application. \`main.jsx\` continue d'utiliser l'import existant pour le MVP.
+Des fichiers par departement sont aussi generes dans \`public/data/anecdotes/{code}.json\` pour permettre un chargement differe au strict besoin des resultats et fiches.
 
-## Résultat de génération
+## Resultat de generation
 
 | Indicateur | Valeur |
 | --- | ---: |
-| Anecdotes exportées | ${validated.length} |
-| Départements couverts | ${departmentCodes.length} |
-| Anecdotes exclues \`à vérifier\` | ${excludedCounts["à vérifier"]} |
+| Anecdotes exportees | ${validated.length} |
+| Departements couverts | ${departmentCodes.length} |
+| Anecdotes exclues \`a verifier\` | ${excludedCounts["à vérifier"]} |
 | Brouillons exclus | ${excludedCounts.brouillon} |
-| Rejetées exclues | ${excludedCounts.rejetée} |
-| Poids JSON brut | ${formatBytes(outputSize)} |
-| Poids gzip estimé | ${formatBytes(outputGzipSize)} |
+| Rejetees exclues | ${excludedCounts.rejetée} |
+| Poids JSON global brut | ${formatBytes(outputSize)} |
+| Poids JSON global gzip estime | ${formatBytes(outputGzipSize)} |
+| Fichiers par departement | ${departmentFiles.length} |
+| Poids total fichiers departement | ${formatBytes(totalDepartmentFilesSize)} |
+| Poids gzip cumule fichiers departement | ${formatBytes(totalDepartmentFilesGzipSize)} |
+| Poids resume collections | ${formatBytes(collectionSummarySize)} |
+| Poids gzip resume collections | ${formatBytes(collectionSummaryGzipSize)} |
 
-## Champs conservés
+## Champs conserves
 
 ${PUBLIC_FIELDS.map((field) => `- \`${field}\``).join("\n")}
 
@@ -158,52 +251,31 @@ ${PUBLIC_FIELDS.map((field) => `- \`${field}\``).join("\n")}
 
 ${EXCLUDED_FIELDS.map((field) => `- \`${field}\``).join("\n")}
 
-Les sources ne sont pas incluses parce qu'elles ne sont pas nécessaires à l'affichage public actuel. Les statuts ne sont pas inclus parce que ce dataset public ne contient déjà que des anecdotes validées.
+## Couverture par departement
 
-## Structure du JSON
-
-\`\`\`json
-{
-  "45": [
-    {
-      "id": "...",
-      "titre": "...",
-      "contenu": "...",
-      "categorie": "...",
-      "rarete": "...",
-      "ton": "...",
-      "contexte": "...",
-      "theme": "..."
-    }
-  ]
-}
-\`\`\`
-
-## Couverture par département
-
-| Département | Anecdotes exportées |
+| Departement | Anecdotes exportees |
 | --- | ---: |
 ${rows.join("\n")}
 
-## Comparaison avec l'état bundle actuel
+## Comparaison avec l'etat bundle actuel
 
-| Élément | Brut | Gzip estimé |
+| Element | Brut | Gzip estime |
 | --- | ---: | ---: |
 ${distLines.join("\n")}
 
-Lecture : le dataset public validé est plus léger que les batchs source complets car il exclut les anecdotes non validées et les champs internes. Il ne réduit toutefois pas encore le bundle tant que \`main.jsx\` importe le moteur actuel, qui agrège les batchs JS.
+## Plus gros fichiers par departement
 
-## Recommandation future
+| Departement | Anecdotes | Brut | Gzip estime |
+| --- | ---: | ---: | ---: |
+${largestDepartmentFiles.join("\n")}
 
-Stratégie recommandée pour une bascule ultérieure :
+## Strategie recommandee
 
-1. Conserver \`public/data/anecdotes-valides.json\` comme artefact public généré.
-2. Remplacer progressivement l'import statique par un chargement différé depuis ce JSON.
-3. Ajouter un petit index par département si le fichier global devient trop gros.
-4. Garder le fallback \`dep.anecdote\` pendant le chargement ou en cas d'erreur réseau.
-5. À terme, générer soit un JSON global validé, soit un fichier par département selon la taille atteinte.
-
-Pour le MVP, aucune bascule n'est effectuée : ce dataset prépare l'optimisation sans modifier le gameplay.
+1. Charger \`public/data/anecdotes/{code}.json\` uniquement pour les departements affiches en resultat ou fiche.
+2. Garder \`public/data/anecdotes-valides.json\` comme artefact global de controle et d'audit.
+3. Utiliser \`public/data/anecdotes-collections-summary.json\` pour les totaux de collections sans charger tous les contenus.
+4. Garder le fallback \`dep.anecdote\` pendant le chargement ou en cas d'erreur reseau.
+5. Si un departement devient trop lourd, fractionner ensuite par contexte ou rarete.
 `;
 }
 
@@ -217,6 +289,12 @@ function main() {
   const outputBuffer = Buffer.from(json, "utf8");
   const outputSize = outputBuffer.length;
   const outputGzipSize = gzipSize(outputBuffer);
+  const departmentFiles = writeDepartmentFiles(dataset);
+  const collectionSummaryJson = `${JSON.stringify(buildCollectionSummary(validated), null, 2)}\n`;
+  fs.writeFileSync(collectionSummaryPath, collectionSummaryJson, "utf8");
+  const collectionSummaryBuffer = Buffer.from(collectionSummaryJson, "utf8");
+  const collectionSummarySize = collectionSummaryBuffer.length;
+  const collectionSummaryGzipSize = gzipSize(collectionSummaryBuffer);
   const distJsStats = getDistJsStats();
   const batchStats = getBatchStats();
 
@@ -227,15 +305,23 @@ function main() {
     outputGzipSize,
     distJsStats,
     batchStats,
+    departmentFiles,
+    collectionSummarySize,
+    collectionSummaryGzipSize,
   }), "utf8");
 
   console.log(JSON.stringify({
     output: path.relative(rootDir, outputPath).replace(/\\/g, "/"),
+    departmentOutput: path.relative(rootDir, departmentOutputDir).replace(/\\/g, "/"),
+    collectionSummary: path.relative(rootDir, collectionSummaryPath).replace(/\\/g, "/"),
     report: path.relative(rootDir, reportPath).replace(/\\/g, "/"),
     exported: validated.length,
     departments: Object.keys(dataset).length,
+    departmentFiles: departmentFiles.length,
     bytes: outputSize,
     gzipBytes: outputGzipSize,
+    collectionSummaryBytes: collectionSummarySize,
+    collectionSummaryGzipBytes: collectionSummaryGzipSize,
   }, null, 2));
 }
 

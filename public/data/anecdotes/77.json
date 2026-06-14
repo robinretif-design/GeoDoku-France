@@ -1,0 +1,28 @@
+[
+  {
+    "id": "77-gastronomie-005",
+    "code_departement": "77",
+    "titre": "Le sucre d’orge de Moret",
+    "contenu": "Le sucre d’orge de Moret est une confiserie ancienne, associée à la ville de Moret-sur-Loing. Son histoire mêle douceur, tradition religieuse et savoir-faire local. Elle donne une entrée légère dans un département souvent dominé par les châteaux.",
+    "categorie": "gastronomie",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "neutre",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  },
+  {
+    "id": "77-seed-0082",
+    "code_departement": "77",
+    "titre": "Comprendre Seine-et-Marne",
+    "contenu": "Fontainebleau, Provins et les marges rurales donnent à la Seine-et-Marne une autre image de l’Île-de-France.",
+    "categorie": "cinéma",
+    "difficulte": 2,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "69-seed-0078",
+    "code_departement": "69",
+    "titre": "Comprendre Rhône",
+    "contenu": "Lyon donne au Rhône une force urbaine, gastronomique et architecturale très lisible.",
+    "categorie": "cinéma",
+    "difficulte": 2,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

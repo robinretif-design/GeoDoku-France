@@ -1,0 +1,15 @@
+[
+  {
+    "id": "33-seed-0020",
+    "code_departement": "33",
+    "titre": "Comprendre Gironde",
+    "contenu": "Bordeaux, l’estuaire et le bassin d’Arcachon rendent la Gironde très polyvalente, donc assez attendue.",
+    "categorie": "cinéma",
+    "difficulte": 2,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

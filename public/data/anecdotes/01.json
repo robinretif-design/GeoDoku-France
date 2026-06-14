@@ -1,0 +1,41 @@
+[
+  {
+    "id": "01-histoire-005",
+    "code_departement": "01",
+    "titre": "Le Bugey résistant",
+    "contenu": "Le relief du Bugey accueille des groupes de résistance pendant la Seconde Guerre mondiale. Routes difficiles, forêts et villages isolés donnent au territoire une profondeur clandestine. Derrière les paysages calmes, l’Ain garde une mémoire de circulation discrète, de risques et de solidarités locales.",
+    "categorie": "histoire",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": "resistance-ain",
+    "statut_validation": "validée"
+  },
+  {
+    "id": "01-histoire-008",
+    "code_departement": "01",
+    "titre": "Nantua, mémoire sombre",
+    "contenu": "Nantua garde une mémoire douloureuse de la Seconde Guerre mondiale, notamment à travers les rafles et la répression. La ville, lovée dans un paysage de lac et de montagne, rappelle que les décors les plus beaux peuvent porter des histoires très dures.",
+    "categorie": "histoire",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": "resistance-ain",
+    "statut_validation": "validée"
+  },
+  {
+    "id": "01-seed-0031",
+    "code_departement": "01",
+    "titre": "Comprendre Ain",
+    "contenu": "Entre Bresse, Dombes et contreforts du Jura, l’Ain ajoute un profil rural et frontalier assez souple.",
+    "categorie": "patrimoine",
+    "difficulte": 3,
+    "rarete": "peu commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

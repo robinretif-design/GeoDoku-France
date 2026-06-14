@@ -1,28 +1,19 @@
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Archive, BarChart3, HelpCircle, Home, Info, RotateCcw, Share2, X } from "lucide-react";
-import { getAnalyticsDebugState, initAnalytics, trackGevocroiseeEvent } from "./analytics.js";
+import { initAnalytics, trackGevocroiseeEvent } from "./analytics.js";
 import {
-  getLocalTesterAnalyticsDebugState,
   initLocalTesterAnalytics,
   recordLocalTesterAction,
   recordLocalTesterGameAbandoned,
   recordLocalTesterGameCompleted,
   recordLocalTesterGameStarted,
   recordLocalTesterRulesOpened,
-} from "./debugLocalAnalytics.js";
+} from "./services/localTesterAnalyticsClient.js";
 import { consumeDailyReset, getDailyResetLimitState } from "./dailyResetLimit.js";
 import { departments, getGridCalendarState } from "./gameData";
 import { cellKey, findMasterMove, rank, scoreCell, scoreGrid } from "./scoring";
-import {
-  getContextualAnecdote,
-  getNeverSeenAnecdoteForDepartment,
-  getRareAnecdote,
-  getSeenAnecdoteIds,
-  isAnecdoteValidated,
-  recordAnecdoteDisplay,
-} from "./services/anecdotesService.js";
 import {
   getCommunityInsightForPlacement,
   loadCommunityStatsStore,
@@ -33,10 +24,6 @@ import {
   getRarityMetadata,
   recordDiscovery,
 } from "./services/discoveryService.js";
-import {
-  getCollectionsStats,
-  recordCollectionDiscovery,
-} from "./services/collectionsService.js";
 import {
   getAnecdoteMediaDetails,
   getAnecdoteMedia,
@@ -49,8 +36,42 @@ import {
 } from "./services/mediaService.js";
 import "./styles.css";
 
+const DebugPage = React.lazy(() => import("./components/DebugPage.jsx"));
+
 const STATS_STORAGE_KEY = "geodoku-france-player-stats";
 const DAILY_RESULTS_STORAGE_KEY = "geodoku-france-daily-results";
+
+const emptyCollectionStats = {
+  totalCollectionsDiscovered: 0,
+  totalCollectionAnecdotesDiscovered: 0,
+  totalAvailableCollections: 0,
+  visibleCollections: [],
+  byCollection: [],
+  topCollections: [],
+  lastCollectionDiscovered: null,
+  totalThemesDiscovered: 0,
+  totalThemedAnecdotesDiscovered: 0,
+  totalAvailableThemes: 0,
+  byTheme: [],
+  topThemes: [],
+  lastThemeDiscovered: null,
+};
+
+let anecdoteServicesPromise = null;
+
+function loadAnecdoteServices() {
+  if (!anecdoteServicesPromise) {
+    anecdoteServicesPromise = Promise.all([
+      import("./services/anecdotesService.js"),
+      import("./services/collectionsService.js"),
+    ]).then(([anecdotesService, collectionsService]) => ({
+      ...anecdotesService,
+      ...collectionsService,
+    }));
+  }
+
+  return anecdoteServicesPromise;
+}
 
 const emptyStats = {
   bestScore: 0,
@@ -176,6 +197,19 @@ function DifficultyBadge({ difficulty = "normal" }) {
     <span className={`difficulty-badge difficulty-${key}`}>
       {difficultyLabels[key]}
     </span>
+  );
+}
+
+function AppLoading({ label = "Chargement..." }) {
+  return (
+    <main className="app">
+      <section className="loading-shell" role="status" aria-live="polite">
+        <div className="loading-mark" aria-hidden="true">
+          <img src="/brand/gevocroisee-mark.svg" alt="" />
+        </div>
+        <p>{label}</p>
+      </section>
+    </main>
   );
 }
 
@@ -405,52 +439,72 @@ function logAnecdoteSelection(dep, selection, reason) {
   });
 }
 
-function selectDepartmentAnecdote(placement, displayContext = "result") {
+async function loadCollectionStats() {
+  const { getCollectionsStats } = await loadAnecdoteServices();
+  return getCollectionsStats();
+}
+
+async function selectDepartmentAnecdote(placement, displayContext = "result") {
   const dep = placement?.dep;
   if (!dep) return null;
 
-  const editorialContext = getAnecdoteContext(placement, displayContext);
-  const seenIds = getSeenAnecdoteIds();
-  let selected = null;
+  try {
+    const {
+      getContextualAnecdote,
+      getNeverSeenAnecdoteForDepartment,
+      getRareAnecdote,
+      getSeenAnecdoteIds,
+      isAnecdoteValidated,
+      recordAnecdoteDisplay,
+      recordCollectionDiscovery,
+    } = await loadAnecdoteServices();
+    const editorialContext = getAnecdoteContext(placement, displayContext);
+    const seenIds = getSeenAnecdoteIds();
+    let selected = null;
 
-  if (displayContext === "master_move") {
-    const rare = getRareAnecdote(dep.code, { recordDisplay: false });
-    if (rare && !seenIds.includes(rare.id)) {
-      selected = rare;
+    if (displayContext === "master_move") {
+      const rare = getRareAnecdote(dep.code, { recordDisplay: false });
+      if (rare && !seenIds.includes(rare.id)) {
+        selected = rare;
+      }
     }
-  }
 
-  if (!selected) {
-    selected = getContextualAnecdote(dep.code, editorialContext, { recordDisplay: false });
-  }
+    if (!selected) {
+      selected = getContextualAnecdote(dep.code, editorialContext, { recordDisplay: false });
+    }
 
-  if (!selected) {
-    selected = getNeverSeenAnecdoteForDepartment(dep.code, { recordDisplay: false });
-  }
+    if (!selected) {
+      selected = getNeverSeenAnecdoteForDepartment(dep.code, { recordDisplay: false });
+    }
 
-  if (selected && isAnecdoteValidated(selected)) {
-    recordAnecdoteDisplay(selected.id, selected);
-    recordDiscovery(selected, {
-      departmentCode: dep.code,
-      departmentName: dep.name,
-      context: displayContext,
-    });
-    const collectionResult = recordCollectionDiscovery(selected, {
-      departmentCode: dep.code,
-      departmentName: dep.name,
-      context: displayContext,
-    });
-    const display = toDisplayAnecdote(selected, collectionResult.collection);
-    logAnecdoteSelection(dep, display, "validated_anecdote_found");
-    return display;
-  }
+    if (selected && isAnecdoteValidated(selected)) {
+      recordAnecdoteDisplay(selected.id, selected);
+      recordDiscovery(selected, {
+        departmentCode: dep.code,
+        departmentName: dep.name,
+        context: displayContext,
+      });
+      const collectionResult = recordCollectionDiscovery(selected, {
+        departmentCode: dep.code,
+        departmentName: dep.name,
+        context: displayContext,
+      });
+      const display = toDisplayAnecdote(selected, collectionResult.collection);
+      logAnecdoteSelection(dep, display, "validated_anecdote_found");
+      return display;
+    }
 
-  if (selected && !isAnecdoteValidated(selected) && import.meta.env.DEV) {
-    console.warn("[GévoCroisée anecdotes] Anecdote non validée rejetée avant affichage", {
-      departmentCode: dep.code,
-      anecdoteId: selected.id,
-      status: selected.statut_validation,
-    });
+    if (selected && !isAnecdoteValidated(selected) && import.meta.env.DEV) {
+      console.warn("[GévoCroisée anecdotes] Anecdote non validée rejetée avant affichage", {
+        departmentCode: dep.code,
+        anecdoteId: selected.id,
+        status: selected.statut_validation,
+      });
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn("[GévoCroisée anecdotes] Chargement différé indisponible", error);
+    }
   }
 
   const fallback = getFallbackAnecdote(dep);
@@ -561,6 +615,7 @@ function DepartmentAbout({ placement, onClose }) {
           <AnecdoteMedia displayAnecdote={displayAnecdote} dep={dep} />
           <DiscoverySignals displayAnecdote={displayAnecdote} />
           {!displayAnecdote.isFallback && <h3>{displayAnecdote.title}</h3>}
+          {placement.anecdoteLoading && <p className="loading-note">Chargement de l'anecdote...</p>}
           <p>{displayAnecdote.content}</p>
         </section>
 
@@ -614,10 +669,12 @@ function App() {
   const [showRules, setShowRules] = useState(false);
   const [aboutPlacement, setAboutPlacement] = useState(null);
   const [resultAnecdotes, setResultAnecdotes] = useState({});
+  const [resultAnecdotesLoading, setResultAnecdotesLoading] = useState(false);
   const [cellAttemptCounts, setCellAttemptCounts] = useState({});
   const [communityStatsStore, setCommunityStatsStore] = useState(loadCommunityStatsStore);
   const [discoveryStats, setDiscoveryStats] = useState(getDiscoveryStats);
-  const [collectionStats, setCollectionStats] = useState(getCollectionsStats);
+  const [collectionStats, setCollectionStats] = useState(emptyCollectionStats);
+  const [collectionStatsLoading, setCollectionStatsLoading] = useState(false);
 
   const editionLabel = grid ? `GévoCroisée #${grid.id}` : "GévoCroisée";
   const todayResult = todayGrid ? dailyResults[todayGrid.id] : null;
@@ -652,8 +709,6 @@ function App() {
   const rankLabel = rank(computed.total);
   const resultComment = getResultComment(computed.total);
   const isDebugPage = window.location.pathname === "/debug" || new URLSearchParams(window.location.search).get("debug") === "true";
-  const [analyticsDebugState, setAnalyticsDebugState] = useState(() => getAnalyticsDebugState());
-  const [localTesterDebugState, setLocalTesterDebugState] = useState(() => getLocalTesterAnalyticsDebugState());
   const [dailyResetLimitState, setDailyResetLimitState] = useState(() => getDailyResetLimitState(todayGrid?.id));
   const dailyResetDisabled = Boolean(isDailyResetLimited && !dailyResetLimitState.canReset);
   const dailyResetCopy = isDailyResetLimited
@@ -673,19 +728,6 @@ function App() {
   useEffect(() => {
     setDailyResetLimitState(getDailyResetLimitState(todayGrid?.id));
   }, [todayGrid?.id]);
-
-  useEffect(() => {
-    if (!isDebugPage) return undefined;
-
-    const updateDebugState = () => {
-      setAnalyticsDebugState(getAnalyticsDebugState());
-      setLocalTesterDebugState(getLocalTesterAnalyticsDebugState());
-    };
-    updateDebugState();
-
-    const intervalId = window.setInterval(updateDebugState, 500);
-    return () => window.clearInterval(intervalId);
-  }, [isDebugPage]);
 
   useEffect(() => {
     const recordExitDuringGame = () => {
@@ -711,18 +753,36 @@ function App() {
     if (screen !== "result" || !grid) return;
 
     const visiblePlacements = placedDepartments.slice(0, 4);
-    const additions = {};
+    const missingPlacements = visiblePlacements
+      .map((placement) => ({
+        placement,
+        key: getAnecdoteCacheKey(grid.id, placement, "result"),
+      }))
+      .filter(({ key }) => !resultAnecdotes[key]);
 
-    visiblePlacements.forEach((placement) => {
-      const key = getAnecdoteCacheKey(grid.id, placement, "result");
-      if (!resultAnecdotes[key]) {
-        additions[key] = selectDepartmentAnecdote(placement, "result");
-      }
-    });
+    if (missingPlacements.length === 0) return undefined;
 
-    if (Object.keys(additions).length > 0) {
-      setResultAnecdotes((prev) => ({ ...prev, ...additions }));
-    }
+    let cancelled = false;
+    setResultAnecdotesLoading(true);
+
+    Promise.all(missingPlacements.map(async ({ placement, key }) => [
+      key,
+      await selectDepartmentAnecdote(placement, "result"),
+    ]))
+      .then((entries) => {
+        if (cancelled) return;
+        const additions = Object.fromEntries(entries.filter(([, anecdote]) => anecdote));
+        if (Object.keys(additions).length > 0) {
+          setResultAnecdotes((prev) => ({ ...prev, ...additions }));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setResultAnecdotesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [screen, grid?.id, placedDepartments, resultAnecdotes]);
 
   function openRules() {
@@ -734,14 +794,45 @@ function App() {
   function openDepartmentAbout(placement, context = "unknown") {
     if (!placement?.dep) return;
 
+    const cacheKey = getAnecdoteCacheKey(grid?.id, placement, context === "result" ? "result" : context);
+    const resultCacheKey = getAnecdoteCacheKey(grid?.id, placement, "result");
     const cachedAnecdote = context === "result"
-      ? resultAnecdotes[getAnecdoteCacheKey(grid?.id, placement, "result")]
+      ? resultAnecdotes[resultCacheKey]
       : null;
+    const fallbackAnecdote = getFallbackAnecdote(placement.dep);
 
     setAboutPlacement({
       ...placement,
-      displayAnecdote: cachedAnecdote ?? selectDepartmentAnecdote(placement, context),
+      anecdoteCacheKey: cacheKey,
+      displayAnecdote: cachedAnecdote ?? fallbackAnecdote,
+      anecdoteLoading: !cachedAnecdote,
     });
+
+    if (!cachedAnecdote) {
+      selectDepartmentAnecdote(placement, context)
+        .then((displayAnecdote) => {
+          const nextDisplayAnecdote = displayAnecdote ?? fallbackAnecdote;
+          setAboutPlacement((current) => {
+            if (!current || current.anecdoteCacheKey !== cacheKey) return current;
+            return {
+              ...current,
+              displayAnecdote: nextDisplayAnecdote,
+              anecdoteLoading: false,
+            };
+          });
+
+          if (context === "result") {
+            setResultAnecdotes((prev) => ({ ...prev, [resultCacheKey]: nextDisplayAnecdote }));
+          }
+        })
+        .catch(() => {
+          setAboutPlacement((current) => {
+            if (!current || current.anecdoteCacheKey !== cacheKey) return current;
+            return { ...current, anecdoteLoading: false };
+          });
+        });
+    }
+
     trackGevocroiseeEvent("department_opened", {
       department: placement.dep.name,
       departmentCode: placement.dep.code,
@@ -808,7 +899,11 @@ function App() {
     setResultAnecdotes({});
     setCellAttemptCounts({});
     setDiscoveryStats(getDiscoveryStats());
-    setCollectionStats(getCollectionsStats());
+    setCollectionStatsLoading(true);
+    loadCollectionStats()
+      .then(setCollectionStats)
+      .catch(() => setCollectionStats(emptyCollectionStats))
+      .finally(() => setCollectionStatsLoading(false));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1006,109 +1101,9 @@ function App() {
 
   if (isDebugPage) {
     return (
-      <main className="app">
-        <section className="debug-page">
-          <p className="edition">Debug analytics</p>
-          <h1>Configuration analytics</h1>
-          <p className="debug-note">
-            GévoCroisée ne collecte aucune donnée personnelle dans son code. Le trafic global est mesuré uniquement si un fournisseur externe est configuré au build.
-          </p>
-
-          <div className="debug-grid">
-            <article className="result-card debug-stat">
-              <span>Provider détecté</span>
-              <strong>{analyticsDebugState.providerDetected}</strong>
-              <small>{analyticsDebugState.label}</small>
-            </article>
-            <article className="result-card debug-stat">
-              <span>Website ID Umami</span>
-              <strong>{analyticsDebugState.umamiWebsiteIdDetected ? "Détecté" : "Manquant"}</strong>
-            </article>
-            <article className="result-card debug-stat">
-              <span>Script URL Umami</span>
-              <strong>{analyticsDebugState.umamiScriptUrlDetected ? "Détectée" : "Manquante"}</strong>
-              {analyticsDebugState.umamiScriptUrlDetected && <small>{analyticsDebugState.umamiScriptUrl}</small>}
-            </article>
-            <article className="result-card debug-stat">
-              <span>Script injecté</span>
-              <strong>{analyticsDebugState.scriptInjected ? "Oui" : "Non"}</strong>
-              <small>{analyticsDebugState.scriptStatus}</small>
-            </article>
-            <article className="result-card debug-stat">
-              <span>Script chargé</span>
-              <strong>{analyticsDebugState.scriptLoaded ? "Oui" : "Non"}</strong>
-              <small>API Umami : {analyticsDebugState.hasUmamiApi ? "disponible" : "indisponible"}</small>
-            </article>
-          </div>
-
-          <section className="result-card debug-table-card">
-            <p className="result-kicker">Détail</p>
-            <p>{analyticsDebugState.detail}</p>
-            <p className="debug-note">Logs console actifs uniquement sur cette page debug.</p>
-          </section>
-
-          <section className="result-card debug-table-card">
-            <p className="result-kicker">Analytics local testeurs</p>
-            <h2>Comportements observes en local</h2>
-            <p className="debug-note">
-              Ces mesures restent dans le navigateur de test via localStorage. Aucun envoi externe, aucun identifiant personnel.
-            </p>
-            <div className="debug-grid compact">
-              <article className="debug-stat">
-                <span>Sessions</span>
-                <strong>{localTesterDebugState.sessions}</strong>
-              </article>
-              <article className="debug-stat">
-                <span>Premiere action moyenne</span>
-                <strong>{localTesterDebugState.averageFirstActionSeconds ?? "n/a"}s</strong>
-              </article>
-              <article className="debug-stat">
-                <span>Regles ouvertes</span>
-                <strong>{localTesterDebugState.rulesOpened}</strong>
-              </article>
-              <article className="debug-stat">
-                <span>Parties lancees</span>
-                <strong>{localTesterDebugState.gamesStarted}</strong>
-              </article>
-              <article className="debug-stat">
-                <span>Validations</span>
-                <strong>{localTesterDebugState.gamesCompleted}</strong>
-                <small>{localTesterDebugState.completionRate}% des lancements</small>
-              </article>
-              <article className="debug-stat">
-                <span>Grilles completes</span>
-                <strong>{localTesterDebugState.gamesCompletedFull}</strong>
-                <small>{localTesterDebugState.gamesCompletedPartial} partielles</small>
-              </article>
-              <article className="debug-stat">
-                <span>Abandons</span>
-                <strong>{localTesterDebugState.gamesAbandoned}</strong>
-                <small>{localTesterDebugState.abandonmentRate}% des lancements</small>
-              </article>
-              <article className="debug-stat">
-                <span>Evenements</span>
-                <strong>{localTesterDebugState.events}</strong>
-                <small>{localTesterDebugState.storageKey}</small>
-              </article>
-            </div>
-
-            <div className="debug-event-list">
-              <p className="result-kicker">Derniers evenements locaux</p>
-              {localTesterDebugState.recentEvents.length === 0 ? (
-                <p className="debug-note">Aucun evenement local enregistre pour l'instant.</p>
-              ) : (
-                localTesterDebugState.recentEvents.map((event, index) => (
-                  <article className="debug-event" key={`${event.name}-${event.atIso}-${index}`}>
-                    <strong>{event.name}</strong>
-                    <span>{new Date(event.atIso).toLocaleString("fr-FR")}</span>
-                    <code>{JSON.stringify(event.data)}</code>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-        </section>
-      </main>
+      <Suspense fallback={<AppLoading label="Chargement du debug..." />}>
+        <DebugPage />
+      </Suspense>
     );
   }
 
@@ -1291,6 +1286,7 @@ function App() {
           </section>
           <section className="result-card collections-card">
             <p className="result-kicker">Collections</p>
+            {collectionStatsLoading && <p className="loading-note">Chargement des collections...</p>}
             <div className="collections-summary">
               <div>
                 <strong>{collectionStats.totalCollectionsDiscovered}</strong>
@@ -1452,8 +1448,10 @@ function App() {
               const { dep, row, col, cell, key } = placement;
               const pct = dep.selectionRate ?? Math.max(1, 14 - dep.prestige);
               const featuredPlace = getFeaturedPlace(dep, `${grid.id}-${key}`);
-              const displayAnecdote = resultAnecdotes[getAnecdoteCacheKey(grid.id, placement, "result")]
+              const anecdoteCacheKey = getAnecdoteCacheKey(grid.id, placement, "result");
+              const displayAnecdote = resultAnecdotes[anecdoteCacheKey]
                 ?? getFallbackAnecdote(dep);
+              const anecdoteLoading = resultAnecdotesLoading && !resultAnecdotes[anecdoteCacheKey];
               const communityInsight = getCommunityInsightForPlacement(placement, departments, communityStatsStore);
               return (
                 <article className="story" key={key}>
@@ -1468,6 +1466,7 @@ function App() {
                       communityInsight={communityInsight}
                     />
                     {!displayAnecdote.isFallback && <p><strong>{displayAnecdote.title}</strong></p>}
+                    {anecdoteLoading && <p className="loading-note">Chargement de l'anecdote...</p>}
                     <p>{displayAnecdote.content}</p>
                     <button className="text-button" onClick={() => openDepartmentAbout(placement, "result")}>
                       <Info size={15} /> Voir la fiche

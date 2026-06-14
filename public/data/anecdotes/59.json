@@ -1,0 +1,28 @@
+[
+  {
+    "id": "59-histoire-008",
+    "code_departement": "59",
+    "titre": "Valenciennes artiste",
+    "contenu": "Valenciennes fut surnommée l’Athènes du Nord pour son intense vie artistique et intellectuelle. Le surnom peut surprendre, mais il dit une vraie ambition urbaine. Le Nord n’est pas seulement industriel, il possède aussi une mémoire savante et artistique.",
+    "categorie": "histoire",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "surprenant",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  },
+  {
+    "id": "59-seed-0016",
+    "code_departement": "59",
+    "titre": "Comprendre Nord",
+    "contenu": "Entre Lille, Dunkerque et les traces minières, le Nord ouvre beaucoup de placements solides mais rarement gratuits.",
+    "categorie": "cinéma",
+    "difficulte": 2,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

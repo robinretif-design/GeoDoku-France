@@ -1,0 +1,28 @@
+[
+  {
+    "id": "02-histoire-008",
+    "code_departement": "02",
+    "titre": "Coucy, géant disparu",
+    "contenu": "Le château de Coucy fut l’une des grandes forteresses médiévales du nord de la France. Son énorme donjon a disparu pendant la Première Guerre mondiale, mais le site garde une puissance d’évocation rare. L’absence elle-même devient monumentale. Le récit laisse dans l’Aisne une trace lisible, entre mémoire locale et histoire nationale.",
+    "categorie": "histoire",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "surprenant",
+    "contexte": "découverte",
+    "theme": "coucy",
+    "statut_validation": "validée"
+  },
+  {
+    "id": "02-seed-0051",
+    "code_departement": "02",
+    "titre": "Comprendre Aisne",
+    "contenu": "Entre Chemin des Dames, abbayes et campagnes picardes, l’Aisne est un choix mémoriel discret mais solide.",
+    "categorie": "patrimoine",
+    "difficulte": 3,
+    "rarete": "peu commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "34-histoire-009",
+    "code_departement": "34",
+    "titre": "Lodève textile",
+    "contenu": "Lodève possède une histoire textile et manufacturière qui nuance l’image balnéaire de l’Hérault. Le département n’est pas seulement fait de plages, vignes et villes universitaires. Il garde aussi des traces d’ateliers, de draps et d’économie intérieure.",
+    "categorie": "histoire",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "neutre",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  },
+  {
+    "id": "34-seed-0019",
+    "code_departement": "34",
+    "titre": "Comprendre Hérault",
+    "contenu": "Entre Montpellier, les villages de l’arrière-pays et le littoral, l’Hérault couvre plusieurs registres du Sud.",
+    "categorie": "cinéma",
+    "difficulte": 2,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

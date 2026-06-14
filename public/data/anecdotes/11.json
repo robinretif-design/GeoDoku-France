@@ -1,0 +1,15 @@
+[
+  {
+    "id": "11-seed-0007",
+    "code_departement": "11",
+    "titre": "Comprendre Aude",
+    "contenu": "Entre cités cathares, littoral et paysages secs, l’Aude peut se glisser dans des cases très différentes.",
+    "categorie": "cinéma",
+    "difficulte": 3,
+    "rarete": "peu commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

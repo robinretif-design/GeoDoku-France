@@ -1,0 +1,15 @@
+[
+  {
+    "id": "09-seed-0035",
+    "code_departement": "09",
+    "titre": "Comprendre Ariège",
+    "contenu": "L’Ariège est un choix de relief intérieur, souvent rare mais très juste sur les cases sauvages ou médiévales.",
+    "categorie": "patrimoine",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

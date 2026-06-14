@@ -1,0 +1,28 @@
+[
+  {
+    "id": "13-histoire-006",
+    "code_departement": "13",
+    "titre": "L’étang de Berre industriel",
+    "contenu": "Autour de l’étang de Berre, le XXe siècle installe raffineries, aéronautique et grandes infrastructures. Cette histoire donne aux Bouches-du-Rhône une facette industrielle souvent moins montrée que Marseille ou les calanques. La Provence peut aussi être usines et énergie.",
+    "categorie": "histoire",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "neutre",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  },
+  {
+    "id": "13-seed-0004",
+    "code_departement": "13",
+    "titre": "Comprendre Bouches-du-Rhône",
+    "contenu": "De Marseille aux calanques, le département concentre mer, cinéma et architecture méditerranéenne.",
+    "categorie": "cinéma",
+    "difficulte": 1,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

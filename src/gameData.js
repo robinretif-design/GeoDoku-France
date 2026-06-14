@@ -549,22 +549,32 @@ export function getGridCalendarState(date = new Date()) {
   );
   const currentIndex = Math.max(0, daysElapsed);
   const isBeforeStart = daysElapsed < 0;
-  const isExhausted = !isBeforeStart && currentIndex >= grids.length;
-  const todayGrid = !isBeforeStart && !isExhausted ? grids[currentIndex] : null;
-  const pastGrids = !isBeforeStart ? grids.slice(0, Math.min(currentIndex, grids.length)) : [];
-  const futureGrids = isBeforeStart ? grids : isExhausted ? [] : grids.slice(currentIndex + 1);
-
-  return {
+  const gridCount = getGridCount();
+  const isExhausted = !isBeforeStart && currentIndex >= gridCount;
+  const todayGrid = !isBeforeStart && !isExhausted ? getGridByIndex(currentIndex) : null;
+  const pastGrids = !isBeforeStart ? getGridsSlice(0, Math.min(currentIndex, gridCount)) : [];
+  const unlockedGrids = todayGrid ? [...pastGrids, todayGrid] : pastGrids;
+  const state = {
     startDate: GRID_CALENDAR_START_DATE,
     daysElapsed,
     currentIndex,
     todayGrid,
     pastGrids,
-    futureGrids,
-    unlockedGrids: todayGrid ? [...pastGrids, todayGrid] : pastGrids,
+    unlockedGrids,
     isBeforeStart,
     isExhausted,
   };
+
+  Object.defineProperty(state, "futureGrids", {
+    enumerable: true,
+    get() {
+      if (isBeforeStart) return getAllGrids();
+      if (isExhausted) return [];
+      return getGridsSlice(currentIndex + 1, gridCount);
+    },
+  });
+
+  return state;
 }
 
 export function getTodayGrid(date = new Date()) {
@@ -1278,6 +1288,55 @@ function createGeneratedGrids() {
   return generated;
 }
 
-const generatedGrids = createGeneratedGrids();
+let generatedGridsCache = null;
+let allGridsCache = null;
 
-export const grids = [...editorialGrids, ...generatedGrids];
+function getGeneratedGrids() {
+  if (!generatedGridsCache) {
+    generatedGridsCache = createGeneratedGrids();
+  }
+
+  return generatedGridsCache;
+}
+
+function getAllGrids() {
+  if (!allGridsCache) {
+    allGridsCache = [...editorialGrids, ...getGeneratedGrids()];
+  }
+
+  return allGridsCache;
+}
+
+function getGridCount() {
+  return GRID_STOCK_TARGET;
+}
+
+function getGridByIndex(index) {
+  if (index < 0 || index >= getGridCount()) return null;
+  if (index < editorialGrids.length) return editorialGrids[index];
+  return getGeneratedGrids()[index - editorialGrids.length] ?? null;
+}
+
+function getGridsSlice(start, end) {
+  const safeStart = Math.max(0, start);
+  const safeEnd = Math.min(end, getGridCount());
+  const result = [];
+
+  for (let index = safeStart; index < safeEnd; index += 1) {
+    const grid = getGridByIndex(index);
+    if (grid) result.push(grid);
+  }
+
+  return result;
+}
+
+export const grids = new Proxy([], {
+  get(_target, property) {
+    const allGrids = getAllGrids();
+    const value = allGrids[property];
+    return typeof value === "function" ? value.bind(allGrids) : value;
+  },
+  has(_target, property) {
+    return property in getAllGrids();
+  },
+});

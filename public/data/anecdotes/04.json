@@ -1,0 +1,15 @@
+[
+  {
+    "id": "04-seed-0052",
+    "code_departement": "04",
+    "titre": "Comprendre Alpes-de-Haute-Provence",
+    "contenu": "Le département mêle haute Provence, gorges, plateaux et villages, avec une identité sèche et spectaculaire.",
+    "categorie": "nature",
+    "difficulte": 3,
+    "rarete": "peu commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "45-seed-0069",
+    "code_departement": "45",
+    "titre": "Comprendre Loiret",
+    "contenu": "Orléans, la Loire et la Sologne placent le Loiret entre histoire nationale et paysages de transition.",
+    "categorie": "patrimoine",
+    "difficulte": 3,
+    "rarete": "peu commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "75-seed-0011",
+    "code_departement": "75",
+    "titre": "Comprendre Paris",
+    "contenu": "Paris est souvent valide, mais rarement audacieux. Un choix confortable, rarement un coup de génie.",
+    "categorie": "cinéma",
+    "difficulte": 1,
+    "rarete": "commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]

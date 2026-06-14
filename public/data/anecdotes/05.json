@@ -1,0 +1,28 @@
+[
+  {
+    "id": "05-culture-001",
+    "code_departement": "05",
+    "titre": "Messiaen au pays de la Meije",
+    "contenu": "Le festival Messiaen au pays de la Meije associe musique contemporaine et paysages de haute montagne. L’expérience culturelle devient aussi une affaire de lieu, de silence et d’altitude. Les Hautes-Alpes y montrent une exigence artistique très particulière. Dans les Hautes-Alpes, cette pratique donne une voix locale à des lieux qui ne sont pas seulement décoratifs.",
+    "categorie": "culture",
+    "difficulte": 4,
+    "rarete": "rare",
+    "ton": "neutre",
+    "contexte": "découverte",
+    "theme": "messiaen",
+    "statut_validation": "validée"
+  },
+  {
+    "id": "05-seed-0033",
+    "code_departement": "05",
+    "titre": "Comprendre Hautes-Alpes",
+    "contenu": "Les Hautes-Alpes apportent une réponse alpine sèche, lumineuse et moins automatique que les grands départements touristiques.",
+    "categorie": "patrimoine",
+    "difficulte": 3,
+    "rarete": "peu commune",
+    "ton": "pédagogique",
+    "contexte": "découverte",
+    "theme": null,
+    "statut_validation": "validée"
+  }
+]
