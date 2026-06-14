@@ -817,11 +817,11 @@ function CollectionDetailView({ detail, loading, onBack = null, onOpenAnecdote }
   );
 }
 
-function ReadableAnecdoteModal({ anecdote, onClose }) {
+function ReadableAnecdoteModal({ anecdote, onClose, stacked = false }) {
   if (!anecdote) return null;
 
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className={`overlay${stacked ? " overlay-front" : ""}`} onClick={onClose}>
       <section
         className="modal readable-anecdote-modal"
         role="dialog"
@@ -1494,7 +1494,6 @@ function App() {
   function closeCollectionDetail() {
     setSelectedCollectionKey(null);
     setCollectionDetail(null);
-    setCollectionAnecdote(null);
     closeModalHistory();
   }
 
@@ -1509,7 +1508,6 @@ function App() {
     setActiveDiscoveryView(null);
     setSelectedCollectionKey(null);
     setCollectionDetail(null);
-    setCollectionAnecdote(null);
     closeModalHistory();
   }
 
@@ -1875,7 +1873,6 @@ function App() {
       )}
 
       <DepartmentAbout placement={aboutPlacement} onClose={closeDepartmentAbout} />
-      <ReadableAnecdoteModal anecdote={collectionAnecdote} onClose={closeCollectionAnecdote} />
       {selectedCollectionKey && (
         <DiscoveryViewModal
           title={collectionDetail?.collectionLabel ?? "Collection"}
@@ -1925,6 +1922,11 @@ function App() {
           )}
         </DiscoveryViewModal>
       )}
+      <ReadableAnecdoteModal
+        anecdote={collectionAnecdote}
+        onClose={closeCollectionAnecdote}
+        stacked={hasDiscoveryPanel}
+      />
 
       {screen === "home" && (
         <section className="hero">

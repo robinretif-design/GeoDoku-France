@@ -240,6 +240,7 @@ cursor: pointer;
 .hint { color: var(--muted); font-style: italic; }
 
 .overlay { position: fixed; inset: 0; background: rgba(7, 10, 18, .62); display: grid; place-items: center; padding: 18px; z-index: 20; }
+.overlay-front { z-index: 40; }
 .modal {
   position: relative;
   width: min(620px, 100%);
